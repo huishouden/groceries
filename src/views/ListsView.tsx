@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { ArrowUpDown, ChevronDown, Plus, Search, Share2, Trash2, X } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ListChecks, Plus, Search, Share2, Trash2, X } from 'lucide-react';
 import { AddBar, type AddRequest } from '../components/AddBar';
 import { usePref } from '../lib/prefs';
 import { RoleNote } from '@huishouden/pwa-kit/react/roles';
@@ -7,8 +7,10 @@ import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableItems } from '../components/SortableItems';
 import { StaplesShelf } from '../components/StaplesShelf';
 import { Chip, ListIconBadge, ghostButton } from '../components/ui';
-import { AISLE_ORDER, formatListForSharing, isTaskList, needsDoing, sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
-import { TodayPanel } from '../components/TodayPanel';
+import { AISLE_ORDER, formatListForSharing, sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
+
+/** Huishouden Tasks on the suite's one site: the household's to-do lists (same origin, so staging links to staging). */
+const TASKS_PATH = '/tasks/';
 
 interface Props {
   /** The shopping banner (detected store, or the store being shopped), shown above the list. */
@@ -24,7 +26,6 @@ interface Props {
   onAdd: (req: AddRequest) => void;
   onAddStaple: (s: Staple) => void;
   onToggle: (item: ListItem) => void;
-  onToggleSubtask: (item: ListItem, subtaskId: string) => void;
   aisle?: AisleProps;
   onEdit: (item: ListItem) => void;
   onDelete: (item: ListItem) => void;
@@ -40,8 +41,6 @@ export function ListsView(props: Props) {
   const { lists, items, staples, selectedList } = props;
   const mine = (item: ListItem) => props.mayChange?.(item) !== false;
   const setUp = props.canSetUp !== false;
-  // To-dos are not grouped by store section, so their rows and filters leave it out.
-  const task = isTaskList(selectedList.icon);
   const [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showDone, setShowDone] = usePref('showDone', true);
@@ -62,8 +61,6 @@ export function ListsView(props: Props) {
     ([, n]) => n > 0,
   );
   const pendingCount = (listId: string) => items.filter((i) => i.listId === listId && !i.completed).length;
-  const now = Date.now();
-  const today = needsDoing(items, now);
 
   async function share() {
     const text = formatListForSharing(selectedList.name, listItems);
@@ -108,6 +105,9 @@ export function ListsView(props: Props) {
             <ArrowUpDown size={18} /> Reorder lists
           </button>
         )}
+        <a href={TASKS_PATH} className={`${ghostButton} mt-4 justify-start text-sm font-normal text-stone-600 dark:text-stone-300`}>
+          <ListChecks size={18} /> To-dos and chores are in Tasks
+        </a>
       </nav>
 
       <div className="min-w-0 flex-1 overflow-y-auto">
@@ -120,17 +120,22 @@ export function ListsView(props: Props) {
           ))}
           {setUp && <Chip onClick={props.onNewList}>+ New</Chip>}
           {setUp && lists.length > 1 && <Chip onClick={props.onReorderLists}>Reorder</Chip>}
+          <a
+            href={TASKS_PATH}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm whitespace-nowrap text-stone-600 underline-offset-2 hover:underline dark:text-stone-300"
+          >
+            <ListChecks size={16} /> To-dos are in Tasks
+          </a>
         </div>
 
         <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-4 p-4 sm:p-6">
-          <TodayPanel today={today} lists={lists} now={now} onToggle={props.onToggle} onOpen={props.onEdit} onSelectList={props.onSelectList} />
           {props.banner}
           <header className="flex items-center gap-3">
             <ListIconBadge icon={selectedList.icon} color={selectedList.color} size="lg" />
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-2xl font-bold">{selectedList.name}</h1>
               <p className="text-sm text-stone-500">
-                {listItems.filter((i) => !i.completed).length} {task ? 'to do' : 'to get'} · {listItems.filter((i) => i.completed).length} done
+                {listItems.filter((i) => !i.completed).length} to get · {listItems.filter((i) => i.completed).length} done
               </p>
             </div>
             <button onClick={() => void share()} className={ghostButton} aria-label="Share list">
@@ -165,7 +170,7 @@ export function ListsView(props: Props) {
             </div>
           )}
 
-          {!task && categoryCounts.length > 1 && (
+          {categoryCounts.length > 1 && (
             <div className="scrollbar-none flex gap-2 overflow-x-auto">
               <Chip active={!filter} onClick={() => setFilter(null)}>
                 All
@@ -193,10 +198,10 @@ export function ListsView(props: Props) {
                   key={item.id}
                   item={item}
                   drag={drag}
-                  onToggle={() => props.onToggle(item)} onToggleSubtask={(id) => props.onToggleSubtask(item, id)} {...aisleRowProps(props.aisle, item)}
+                  onToggle={() => props.onToggle(item)} {...aisleRowProps(props.aisle, item)}
                   onEdit={mine(item) ? () => props.onEdit(item) : undefined}
                   onDelete={mine(item) ? () => props.onDelete(item) : undefined}
-                  showCategory={!filter && !task}
+                  showCategory={!filter}
                 />
               )}
             />
@@ -217,7 +222,7 @@ export function ListsView(props: Props) {
               {showDone && (
                 <ul className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
                   {done.map((item) => (
-                    <ItemRow key={item.id} item={item} onToggle={() => props.onToggle(item)} onToggleSubtask={(id) => props.onToggleSubtask(item, id)} {...aisleRowProps(props.aisle, item)} onDelete={mine(item) ? () => props.onDelete(item) : undefined} />
+                    <ItemRow key={item.id} item={item} onToggle={() => props.onToggle(item)} {...aisleRowProps(props.aisle, item)} onDelete={mine(item) ? () => props.onDelete(item) : undefined} />
                   ))}
                 </ul>
               )}

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 import { pwaApp } from '@huishouden/pwa-kit/vite';
 
-const BASE = '/tasks/';
+const BASE = '/groceries/';
 
 export default defineConfig({
   test: {
@@ -21,23 +21,22 @@ export default defineConfig({
     react(),
     tailwindcss(),
     pwaApp({
-      // Tasks' path on the suite's one site (pwa-kit docs/one-site.md).
+      // Groceries' path on the suite's one site (pwa-kit docs/one-site.md).
       base: BASE,
-      name: 'Huishouden Tasks',
-      shortName: 'Tasks',
-      description: 'Shared lists and chores',
-      url: 'https://huishouden-piekstra.web.app/tasks/',
-      // Shows the shared sender's reminders (pwa-kit push) and opens their links into Tasks.
-      push: true,
+      name: 'Huishouden Groceries',
+      shortName: 'Groceries',
+      description: 'What to get, and where it is',
+      url: 'https://huishouden-piekstra.web.app/groceries/',
       themeColor: '#1b4332',
       backgroundColor: '#faf9f5',
       includeAssets: ['icon.svg', 'favicon.png', 'apple-touch-icon.png', 'og.png'],
       overrides: {
         manifest: {
-          categories: ['productivity', 'lifestyle'],
+          categories: ['shopping', 'food', 'lifestyle'],
           shortcuts: [
             { name: 'Kitchen', url: `${BASE}?mode=hub`, icons: [{ src: `${BASE}pwa-192.png`, sizes: '192x192' }] },
             { name: 'Store', url: `${BASE}?mode=store`, icons: [{ src: `${BASE}pwa-192.png`, sizes: '192x192' }] },
+            { name: 'Meals', url: `${BASE}?mode=meals`, icons: [{ src: `${BASE}pwa-192.png`, sizes: '192x192' }] },
           ],
         },
         workbox: {

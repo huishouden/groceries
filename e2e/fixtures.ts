@@ -1,6 +1,6 @@
 import { expect, test as base, type BrowserContext, type Page } from '@playwright/test';
 
-const PROJECT = 'demo-huishouden-tasks';
+const PROJECT = 'demo-huishouden-groceries';
 
 declare global {
   interface Window {
@@ -25,23 +25,27 @@ async function emulatorRequest(url: string, init: RequestInit): Promise<void> {
 
 /** Wipes emulator data so every test starts with no users and no households. */
 export async function resetEmulators(): Promise<void> {
-  await emulatorRequest(`http://127.0.0.1:8080/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: 'DELETE' });
-  await emulatorRequest(`http://127.0.0.1:9099/emulator/v1/projects/${PROJECT}/accounts`, { method: 'DELETE' });
+  await emulatorRequest(`http://127.0.0.1:8180/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: 'DELETE' });
+  await emulatorRequest(`http://127.0.0.1:9199/emulator/v1/projects/${PROJECT}/accounts`, { method: 'DELETE' });
 }
 
 /**
  * Writes the household's food settings as the portal would, bypassing the rules (the emulator's
  * admin access), for the one household in the emulator. People follow @huishouden/pwa-kit/food.
  */
-const REST = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`;
+const REST = `http://127.0.0.1:8180/v1/projects/${PROJECT}/databases/(default)/documents`;
 const ADMIN = { Authorization: 'Bearer owner' };
 
-/** The id of the one household in the emulator, read with admin access. */
+/** The id of the one household in the emulator, read with admin access; waits for the app's write to land. */
 async function onlyHouseholdId(): Promise<string> {
-  const list = (await (await fetch(`${REST}/households`, { headers: ADMIN })).json()) as { documents?: { name: string }[] };
-  const id = list.documents?.[0]?.name.split('/').pop();
-  if (!id) throw new Error('No household in the emulator yet');
-  return id;
+  const deadline = Date.now() + 15_000;
+  for (;;) {
+    const list = (await (await fetch(`${REST}/households`, { headers: ADMIN })).json()) as { documents?: { name: string }[] };
+    const id = list.documents?.[0]?.name.split('/').pop();
+    if (id) return id;
+    if (Date.now() > deadline) throw new Error('No household in the emulator yet');
+    await new Promise((r) => setTimeout(r, 250));
+  }
 }
 
 export async function seedFood(people: { id: string; name: string; diets: string[]; avoid: string[]; spice?: string }[]): Promise<void> {
@@ -69,6 +73,51 @@ export async function readHouseholdCollection(name: string): Promise<Record<stri
   return (res.documents ?? []).map((d) => Object.fromEntries(Object.entries(d.fields).map(([k, v]) => [k, v.stringValue ?? v])));
 }
 
+type Value = string | number | boolean | null | Value[] | { [k: string]: Value };
+const encode = (v: Value): Record<string, unknown> =>
+  v === null
+    ? { nullValue: null }
+    : typeof v === 'string'
+      ? { stringValue: v }
+      : typeof v === 'number'
+        ? Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }
+        : typeof v === 'boolean'
+          ? { booleanValue: v }
+          : Array.isArray(v)
+            ? { arrayValue: { values: v.map(encode) } }
+            : { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, encode(x)])) } };
+const decode = (v: Record<string, unknown>): Value => {
+  if ('stringValue' in v) return v.stringValue as string;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue as number;
+  if ('booleanValue' in v) return v.booleanValue as boolean;
+  if ('arrayValue' in v) return (((v.arrayValue as { values?: Record<string, unknown>[] }).values) ?? []).map(decode);
+  if ('mapValue' in v) return Object.fromEntries(Object.entries((v.mapValue as { fields?: Record<string, Record<string, unknown>> }).fields ?? {}).map(([k, x]) => [k, decode(x)]));
+  return null;
+};
+
+/**
+ * Writes a document under the one household with admin access, as another app would (Huishouden
+ * Tasks' to-dos, its Google Tasks links). `path` is relative to the household: `items/x`.
+ */
+export async function seedHouseholdDoc(path: string, data: Record<string, Value>): Promise<void> {
+  const household = await onlyHouseholdId();
+  await emulatorRequest(`${REST}/households/${household}/${path}`, {
+    method: 'PATCH',
+    headers: { ...ADMIN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, encode(v)])) }),
+  });
+}
+
+/** One household document, read with admin access; null when it does not exist. */
+export async function readHouseholdDoc(path: string): Promise<Record<string, Value> | null> {
+  const household = await onlyHouseholdId();
+  const res = await fetch(`${REST}/households/${household}/${path}`, { headers: ADMIN });
+  if (!res.ok) return null;
+  const doc = (await res.json()) as { fields?: Record<string, Record<string, unknown>> };
+  return Object.fromEntries(Object.entries(doc.fields ?? {}).map(([k, v]) => [k, decode(v)]));
+}
+
 export async function signIn(page: Page, email: string, name: string): Promise<void> {
   await page.goto('./');
   await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
@@ -90,7 +139,7 @@ export async function addItem(page: Page, name: string): Promise<void> {
 
 export async function createHousehold(page: Page, timeout = 5_000): Promise<void> {
   await page.getByRole('button', { name: 'Create household' }).click();
-  await expect(page.getByRole('heading', { name: 'Groceries' })).toBeVisible({ timeout });
+  await expect(page.locator('main').getByRole('heading', { name: 'Groceries' })).toBeVisible({ timeout });
 }
 
 /** Fails the test on uncaught page errors and Firestore listener errors. */

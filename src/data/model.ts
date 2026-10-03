@@ -1,5 +1,4 @@
 import { can, type Role } from '@huishouden/pwa-kit/roles';
-import { DAY, HOUR, startOfDay } from '@huishouden/pwa-kit/time';
 export const CATEGORIES = {
   PRODUCE: 'Produce & Greens',
   DAIRY_EGGS: 'Dairy & Eggs',
@@ -18,7 +17,8 @@ export const CATEGORIES = {
 
 export type Category = (typeof CATEGORIES)[keyof typeof CATEGORIES];
 
-export const ALL_CATEGORIES: Category[] = Object.values(CATEGORIES);
+/** The sections an item can be filed under. Chores & Tasks is Huishouden Tasks' own. */
+export const ALL_CATEGORIES: Category[] = Object.values(CATEGORIES).filter((c) => c !== CATEGORIES.CHORES);
 
 /** The order a typical store is walked in. */
 export const AISLE_ORDER: Category[] = [
@@ -49,10 +49,17 @@ export const ALL_URGENCIES: Urgency[] = [URGENCY.NORMAL, URGENCY.URGENT, URGENCY
 
 export type ListIcon = 'grocery' | 'pantry' | 'bulk' | 'hardware' | 'notes' | 'chores';
 
-/** Lists of to-dos and errands rather than things to buy: no quantities or store aisles. */
+/**
+ * Lists of to-dos and errands rather than things to buy. They belong to Huishouden Tasks, which
+ * reads the same household lists and shows only these; Groceries shows every other list. Keep this
+ * the same in both apps (huishouden/tasks src/data/model.ts).
+ */
 export function isTaskList(icon: ListIcon | undefined): boolean {
   return icon === 'chores' || icon === 'notes';
 }
+
+/** The kinds of list Groceries makes. */
+export const SHOPPING_ICONS: ListIcon[] = ['grocery', 'pantry', 'bulk', 'hardware'];
 
 export interface ShoppingList {
   id: string;
@@ -78,6 +85,8 @@ export interface ListItem {
   urgency: Urgency;
   /** Manual order within the list; lower comes first. Older items without one use createdAt. */
   position?: number;
+  // Dates, places, links and steps are Huishouden Tasks' (to-dos share this document shape);
+  // Groceries never writes them and leaves them as they are.
   /** When it is due or scheduled, in ms since the epoch. With `allDay`, only the date matters. */
   dueAt?: number | null;
   allDay?: boolean;
@@ -132,6 +141,10 @@ export interface Household {
   createdAt: number;
 }
 
+/**
+ * The lists a new household starts with, in Groceries and in Tasks alike, so whichever app creates
+ * the household sets up both. Restoring defaults restores only this app's kind.
+ */
 export const DEFAULT_LISTS: Omit<ShoppingList, 'createdAt'>[] = [
   { id: 'groceries', name: 'Groceries', description: 'Weekly supermarket and fresh market run', icon: 'grocery', color: '#2d6a4f', sortOrder: 0 },
   { id: 'pantry', name: 'Pantry Restock', description: 'Dry goods, spices and kitchen essentials', icon: 'pantry', color: '#b08d57', sortOrder: 1 },
@@ -227,105 +240,6 @@ export function firstName(displayName: string | null | undefined, email: string)
   return fromName || email.split('@')[0];
 }
 
-/**
- * "Today · 10:00 AM", "Today · by 6:00 PM", "Tomorrow", "Tue, Oct 14 · 2:30 PM", and for an all-day
- * deadline "By Sun, Oct 4" or "By tomorrow", in the device's locale and time zone.
- */
-export function formatDue(item: Pick<ListItem, 'dueAt' | 'allDay' | 'dueBy'>, now: number): string {
-  if (!item.dueAt) return '';
-  const days = Math.round((startOfDay(item.dueAt) - startOfDay(now)) / DAY);
-  const date =
-    days === 0
-      ? 'Today'
-      : days === 1
-        ? 'Tomorrow'
-        : days === -1
-          ? 'Yesterday'
-          : new Date(item.dueAt).toLocaleDateString([], {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              ...(Math.abs(days) > 300 ? { year: 'numeric' } : {}),
-            });
-  if (item.allDay) return item.dueBy ? `By ${/^(Today|Tomorrow|Yesterday)$/.test(date) ? date.toLowerCase() : date}` : date;
-  const time = new Date(item.dueAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  return `${date} · ${item.dueBy ? 'by ' : ''}${time}`;
-}
-
-/** Past its date (or, for all-day items, past the end of that day) and not done. */
-export function isOverdue(item: Pick<ListItem, 'dueAt' | 'allDay' | 'completed'>, now: number): boolean {
-  if (!item.dueAt || item.completed) return false;
-  return item.allDay ? startOfDay(item.dueAt) + DAY <= now : item.dueAt < now;
-}
-
-export interface NeedsDoing {
-  /** Past its date or time and not done. */
-  overdue: ListItem[];
-  /** Due later today. */
-  today: ListItem[];
-  /** Marked "Need today", with no date. */
-  urgent: ListItem[];
-}
-
-/** What the household has to get to today, from every list: overdue first, then today's, then "Need today". */
-export function needsDoing(items: ListItem[], now: number): NeedsDoing {
-  const endOfToday = startOfDay(now) + DAY;
-  const open = items.filter((i) => !i.completed);
-  const dated = open.filter((i) => i.dueAt).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0));
-  return {
-    overdue: dated.filter((i) => isOverdue(i, now)),
-    today: dated.filter((i) => !isOverdue(i, now) && (i.dueAt ?? 0) < endOfToday),
-    urgent: sortItems(open.filter((i) => !i.dueAt && i.urgency === URGENCY.URGENT)),
-  };
-}
-
-/** Dated, unfinished items from every list due within `days`, overdue ones included, soonest first. */
-export function upcomingItems(items: ListItem[], now: number, days = 14): ListItem[] {
-  const until = startOfDay(now) + (days + 1) * DAY;
-  return items.filter((i) => !i.completed && i.dueAt && i.dueAt < until).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0));
-}
-
-function calendarStamp(t: number, allDay: boolean): string {
-  const d = new Date(t);
-  if (allDay) {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
-  }
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-}
-
-/** A Google Calendar "new event" link prefilled from the item; timed events default to one hour. */
-export function googleCalendarLink(item: Pick<ListItem, 'name' | 'notes' | 'dueAt' | 'allDay' | 'location'>, listName: string): string {
-  if (!item.dueAt) return '';
-  const start = item.allDay ? startOfDay(item.dueAt) : item.dueAt;
-  const end = item.allDay ? start + DAY : start + HOUR;
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: item.name,
-    dates: `${calendarStamp(start, !!item.allDay)}/${calendarStamp(end, !!item.allDay)}`,
-    details: [item.notes, `From Huishouden Tasks: ${listName}`].filter(Boolean).join('\n'),
-  });
-  if (item.location) params.set('location', item.location);
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-/**
- * Turns "Garage cleanout: sort tools, sweep the floor, fix the light" into a title and steps.
- * Only offered when there is a colon and at least two comma-separated parts after it.
- */
-export function splitIntoChecklist(name: string): { title: string; steps: string[] } | null {
-  const colon = name.indexOf(':');
-  if (colon <= 0) return null;
-  const title = name.slice(0, colon).trim();
-  const steps = name
-    .slice(colon + 1)
-    .split(/,|;|\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (!title || steps.length < 2) return null;
-  return { title, steps: steps.map((s) => s.charAt(0).toUpperCase() + s.slice(1)) };
-}
-
 /** The stored document for an item: every field but the id, which is the document's key. */
 export function itemData(item: ListItem): Omit<ListItem, 'id'> {
   // Firestore rejects undefined field values, which an item built in code can carry.
@@ -337,16 +251,6 @@ export function removedMessage(items: ListItem[], how: 'deleted' | 'cleared'): s
   const n = items.length;
   if (how === 'cleared') return `Cleared ${n} done item${n === 1 ? '' : 's'}`;
   return n === 1 ? `Deleted "${items[0].name}"` : `Deleted ${n} items`;
-}
-
-export function newSubtask(text: string, id = Math.random().toString(36).slice(2, 10)): Subtask {
-  return { id, text: text.trim(), done: false };
-}
-
-/** Flips one step; the item's completion follows the checklist (all done ⇔ completed). */
-export function toggleSubtask(subtasks: Subtask[], id: string): { subtasks: Subtask[]; allDone: boolean } {
-  const next = subtasks.map((s) => (s.id === id ? { ...s, done: !s.done } : s));
-  return { subtasks: next, allDone: next.length > 0 && next.every((s) => s.done) };
 }
 
 /**

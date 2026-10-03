@@ -23,7 +23,7 @@ export function ListIconBadge({ icon, color, size = 'md' }: { icon: ListIcon; co
 }
 
 // The suite's dialog, chips, buttons and inputs (DESIGN.md "Components"), with dark styles under the
-// app's .dark class; Tasks keeps only its own list badge and the small rating badge.
+// app's .dark class; Groceries keeps only its own list badge and the small rating badge.
 export { Chip, Dialog, ghostButton, inputClass, primaryButton } from '@huishouden/pwa-kit/react/ui';
 
 /** A small label beside an item, as a menu prints "Vegetarian" or a spice rating: quiet stone text. */

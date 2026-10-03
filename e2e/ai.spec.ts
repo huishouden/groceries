@@ -3,8 +3,8 @@ import { homedir } from 'node:os';
 import { expect, test } from '@playwright/test';
 
 // Calls the real Gemini model through the app's suggestMeals() in a dev build. App Check is
-// satisfied by a debug token registered for the Tasks app; without the token file this is skipped.
-const TOKEN_FILE = `${homedir()}/.config/huishouden-tasks/appcheck-debug-token`;
+// satisfied by a debug token registered for the Groceries app; without the token file this is skipped.
+const TOKEN_FILE = `${homedir()}/.config/huishouden-groceries/appcheck-debug-token`;
 
 declare global {
   interface Window {

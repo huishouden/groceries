@@ -3,13 +3,13 @@ import type { Auth } from 'firebase/auth';
 import { collection, disableNetwork, doc, initializeFirestore, memoryLocalCache, type Firestore } from 'firebase/firestore';
 // On a Firestore that didn't come from initFirestore the kit's writes are Firestore's own (no outbox).
 import { writeBatch } from '@huishouden/pwa-kit/firestore';
-import { DAY, HOUR, addDays, startOfDay, toYmd } from '@huishouden/pwa-kit/time';
-import { CATEGORIES, DEFAULT_LISTS, URGENCY, type Category, type Household, type ListItem, type Subtask, type Urgency } from './model';
+import { DAY, HOUR, addDays, toYmd } from '@huishouden/pwa-kit/time';
+import { CATEGORIES, DEFAULT_LISTS, URGENCY, type Category, type Household, type ListItem, type Urgency } from './model';
 import { validateMeals, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from './menus';
 import type { PlannedMeal } from './mealPlan';
 import type { StoreLayout } from './stores';
 
-// Signed out, Tasks shows an invented household so it can be tried and screenshotted (CI's
+// Signed out, Groceries shows an invented household so it can be tried and screenshotted (CI's
 // before/after and README images). It is the real app on a Firestore that never goes online: an
 // in-memory cache with the network off, so every change works on screen and nothing leaves the
 // device or survives a reload.
@@ -21,12 +21,6 @@ export const DEMO_HOUSEHOLD: Household = {
   members: [DEMO_EMAIL, 'sam@example.com'],
   joined: [DEMO_EMAIL, 'sam@example.com'],
   createdAt: 0,
-};
-
-const at = (now: number, days: number, hour: number, minute = 0) => {
-  const d = new Date(startOfDay(now) + days * DAY);
-  d.setHours(hour, minute, 0, 0);
-  return d.getTime();
 };
 
 let seq = 0;
@@ -52,12 +46,11 @@ function item(listId: string, name: string, category: Category, now: number, ext
 }
 
 const bought = (daysAgo: number, now: number): Partial<ListItem> => ({ completed: true, completedAt: now - daysAgo * DAY - 2 * HOUR });
-const steps = (texts: string[], done: number): Subtask[] => texts.map((text, i) => ({ id: `s${i}`, text, done: i < done }));
 
 /** The sample household's items, dated from `now` so it always looks current. */
 export function demoItems(now: number): ListItem[] {
   seq = 0;
-  const { PRODUCE, DAIRY_EGGS, BAKERY, MEAT_SEAFOOD, PANTRY, BEVERAGES, SNACKS, HOUSEHOLD, HARDWARE_HOME, CHORES, FROZEN } = CATEGORIES;
+  const { PRODUCE, DAIRY_EGGS, BAKERY, MEAT_SEAFOOD, PANTRY, BEVERAGES, SNACKS, HOUSEHOLD, HARDWARE_HOME, FROZEN } = CATEGORIES;
   return [
     item('groceries', 'Eggs', DAIRY_EGGS, now, { quantity: 'a dozen', urgency: URGENCY.URGENT, position: -now }),
     item('groceries', 'Whole milk', DAIRY_EGGS, now),
@@ -80,12 +73,6 @@ export function demoItems(now: number): ListItem[] {
     item('pantry', 'Black beans', PANTRY, now, { quantity: '3 cans' }),
     item('hardware', 'Furnace filter 16x25', HARDWARE_HOME, now),
     item('hardware', 'Light bulbs', HARDWARE_HOME, now, { quantity: '4', notes: 'Soft white' }),
-    item('chores', 'Drop off dry cleaning', CHORES, now, { dueAt: at(now, 0, 18), dueBy: true, location: 'Example Cleaners, 12 Main St' }),
-    item('chores', 'Call the plumber about the kitchen sink', CHORES, now, { dueAt: at(now, 1, 10) }),
-    item('chores', 'Return library books', CHORES, now, { dueAt: at(now, 3, 0), allDay: true, dueBy: true }),
-    item('chores', 'Garage clean-out', CHORES, now, { subtasks: steps(['Sort the tools', 'Sweep the floor', 'Fix the light'], 1) }),
-    item('chores', 'Cancel streaming trial', CHORES, now, { dueAt: at(now, 9, 0), allDay: true, dueBy: true }),
-    item('chores', 'Water the plants', CHORES, now, bought(0, now)),
   ];
 }
 
@@ -119,7 +106,7 @@ let opened: Promise<Firestore> | null = null;
  */
 export function openDemo(now: number = Date.now()): Promise<Firestore> {
   opened ??= (async () => {
-    const app = initializeApp({ apiKey: 'demo', projectId: 'demo-huishouden-tasks', appId: 'demo' }, 'demo');
+    const app = initializeApp({ apiKey: 'demo', projectId: 'demo-huishouden-groceries', appId: 'demo' }, 'demo');
     const db = initializeFirestore(app, { localCache: memoryLocalCache() });
     await disableNetwork(db);
     const col = (name: string) => collection(db, 'households', DEMO_HOUSEHOLD.id, name);
@@ -149,5 +136,5 @@ export async function suggestDemoMeals(ctx: MealContext): Promise<ValidatedMeals
   return validateMeals({ meals: demoMeals().map((m) => ({ ...m, ...m.levels })) }, ctx);
 }
 
-/** No one is signed in to the sample: Google services (Calendar, Google Tasks) never look. */
+/** No one is signed in to the sample: Google services (Google Tasks) never look. */
 export const DEMO_AUTH = { currentUser: null, onAuthStateChanged: (cb: (user: null) => void) => (cb(null), () => {}) } as unknown as Auth;

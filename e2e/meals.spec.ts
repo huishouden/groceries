@@ -50,7 +50,7 @@ test('suggests meals from what was bought and shares them with the household', a
   await expect(ideas.getByRole('heading', { level: 2 })).toHaveText(['Breakfast', 'Dinner']);
   await expect(ideas).not.toContainText('Lobster');
 
-  const phone = await browser.newContext({ ...devices['Pixel 7'], baseURL: 'http://localhost:5173/tasks/' });
+  const phone = await browser.newContext({ ...devices['Pixel 7'], baseURL: 'http://localhost:5176/groceries/' });
   const bob = await phone.newPage();
   await signIn(bob, 'bob@example.com', 'Bob Example');
   await bob.getByRole('button', { name: 'Meals' }).click();
@@ -144,7 +144,7 @@ test('a starred meal is a household favorite on every device, and either member 
   await expect(ideas.getByRole('button', { name: 'Remove Seared steak with rice from favorites' })).toHaveAttribute('aria-pressed', 'true');
   await expect(favorites.getByRole('heading', { level: 3 })).toHaveText(['Seared steak with rice']);
 
-  const phone = await browser.newContext({ ...devices['Pixel 7'], baseURL: 'http://localhost:5173/tasks/' });
+  const phone = await browser.newContext({ ...devices['Pixel 7'], baseURL: 'http://localhost:5176/groceries/' });
   const bob = await phone.newPage();
   await signIn(bob, 'bob@example.com', 'Bob Example');
   await bob.getByRole('button', { name: 'Meals' }).click();
@@ -346,11 +346,12 @@ test('an idea planned for a day shows in the shared week, and a dinner on the ho
 
   const week = page.getByRole('region', { name: 'This week' });
   await expect(week.getByRole('row', { name: /^Tomorrow/ })).toContainText('Mushroom rice bowl');
-  await expect.poll(async () => (await readHouseholdCollection('agenda')).map((a) => a.title)).toEqual(['Dinner: Mushroom rice bowl']);
+  // Published as Groceries', so Huishouden Tasks' own agenda sync leaves it alone.
+  await expect.poll(async () => (await readHouseholdCollection('agenda')).map((a) => `${a.app}: ${a.title}`)).toEqual(['groceries: Dinner: Mushroom rice bowl']);
 
   // Shared: survives a reload; removing it clears the agenda entry too.
   await page.reload();
-  await page.getByRole('button', { name: 'Meals' }).click();
+  await page.getByRole('button', { name: 'Meals', exact: true }).click();
   await week.getByRole('button', { name: 'Remove Mushroom rice bowl from Tomorrow dinner' }).click();
   await expect(week).toContainText('Nothing planned yet');
   await expect.poll(async () => (await readHouseholdCollection('agenda')).length).toBe(0);

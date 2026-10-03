@@ -19,7 +19,7 @@ async function openGroceries(page: Page) {
   await expect(restore.or(groceries)).toBeVisible({ timeout: 30_000 });
   if (await restore.isVisible()) await restore.click();
   await groceries.click();
-  await expect(page.getByRole('heading', { name: 'Groceries' })).toBeVisible();
+  await expect(page.locator('main').getByRole('heading', { name: 'Groceries' })).toBeVisible();
 }
 
 test('a grocery item one member adds shows for the other, and checking it off syncs back', async ({ page, browser }) => {

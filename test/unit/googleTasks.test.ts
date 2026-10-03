@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { googleTaskItem, googleTaskItemId, toTasksSettings } from '../../src/data/googleTasks';
 
-const task = { id: 'dGFzay1lZ2dz', listId: 'g1', title: 'Call the dentist', notes: 'Ask about Tuesday', due: '2031-05-16', updated: 0, completed: false };
+const task = { id: 'dGFzay1lZ2dz', listId: 'g2', title: 'Oat milk', notes: 'The barista one', due: '2031-05-16', updated: 0, completed: false };
 
 describe('Google Tasks settings', () => {
   it('reads links and handled ids defensively', () => {
@@ -29,16 +29,15 @@ describe('Google Tasks settings', () => {
 });
 
 describe('a Google task on a list', () => {
-  it('keeps its title, notes and day, under a fixed id', () => {
-    expect(googleTaskItem(task, { listId: 'chores' }, 'chores', 'Alex')).toEqual({
+  it('keeps its title and notes, under a fixed id; a shopping item has no due day', () => {
+    expect(googleTaskItem(task, { listId: 'groceries' }, 'grocery', 'Alex')).toEqual({
       id: 'gt-dGFzay1lZ2dz',
-      listId: 'chores',
-      listIcon: 'chores',
-      name: 'Call the dentist',
-      notes: 'Ask about Tuesday',
+      listId: 'groceries',
+      listIcon: 'grocery',
+      name: 'Oat milk',
+      notes: 'The barista one',
       addedBy: 'Alex',
       googleTaskId: 'dGFzay1lZ2dz',
-      due: new Date(2031, 4, 16).getTime(),
     });
     expect(googleTaskItemId('a/b c')).toBe('gt-a_b_c');
   });

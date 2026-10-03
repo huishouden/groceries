@@ -15,20 +15,13 @@ const mode = async (p: Page, name: string) => {
 test('lists', ({ page }) =>
   captureScreenshot(page, 'lists', { fixedTime, prepare: async (p) => {
     await ready(p);
-    await expect(p.getByRole('heading', { name: 'Groceries' })).toBeVisible();
-  } }));
-
-test('tasks with a checklist', ({ page }) =>
-  captureScreenshot(page, 'tasks-checklist', { fixedTime, prepare: async (p) => {
-    await ready(p);
-    await p.getByRole('button', { name: /^Chores & Notes/ }).first().click();
-    await expect(p.getByText('Garage clean-out')).toBeVisible();
+    await expect(p.locator('main').getByRole('heading', { name: 'Groceries' })).toBeVisible();
   } }));
 
 test('kitchen', ({ page }) =>
   captureScreenshot(page, 'kitchen', { fixedTime, prepare: async (p) => {
     await mode(p, 'Kitchen');
-    await expect(p.getByText('Coming up')).toBeVisible();
+    await expect(p.getByText('Notice something running low?').or(p.getByText('to get', { exact: false }).first())).toBeVisible();
   } }));
 
 test('meals', ({ page }) =>
@@ -50,6 +43,6 @@ test('phone: lists', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, 'phone-lists', { fixedTime, prepare: async (p) => {
     await ready(p);
-    await expect(p.getByRole('heading', { name: 'Groceries' })).toBeVisible();
+    await expect(p.locator('main').getByRole('heading', { name: 'Groceries' })).toBeVisible();
   } });
 });

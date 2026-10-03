@@ -1,9 +1,8 @@
 import { useState, type CSSProperties, type ReactNode, type Ref } from 'react';
-import { CalendarClock, Check, ChevronDown, ExternalLink, ListChecks, MapPin, Pencil, Search, Signpost, Trash2, Zap } from 'lucide-react';
+import { Check, Pencil, Search, Signpost, Trash2, Zap } from 'lucide-react';
 import { aisleLabel } from '../data/stores';
 import type { StoreLink } from '../data/chains';
-import { mapsSearchUrl } from '@huishouden/pwa-kit/places';
-import { URGENCY, formatDue, isOverdue, type ListItem } from '../data/model';
+import { URGENCY, type ListItem } from '../data/model';
 
 interface Props {
   item: ListItem;
@@ -12,7 +11,6 @@ interface Props {
   onDelete?: () => void;
   large?: boolean;
   showCategory?: boolean;
-  onToggleSubtask?: (subtaskId: string) => void;
   /** Where this item was found at the store being shopped, if anyone recorded it. */
   aisle?: string;
   onAisle?: (aisle: string) => void;
@@ -48,16 +46,10 @@ export interface DragProps {
   dragging: boolean;
 }
 
-export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory, drag, onToggleSubtask, aisle, onAisle, onDismissAisle, findAt }: Props) {
+export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory, drag, aisle, onAisle, onDismissAisle, findAt }: Props) {
   const [editingAisle, setEditingAisle] = useState(false);
   const showAisleInput = !!onAisle && editingAisle;
-  const [expanded, setExpanded] = useState(false);
-  const steps = item.subtasks ?? [];
-  const stepsDone = steps.filter((st) => st.done).length;
-  // A due time says more than "Need today", so the badge only shows on undated items.
-  const urgent = item.urgency === URGENCY.URGENT && !item.completed && !item.dueAt;
-  const now = Date.now();
-  const overdue = isOverdue(item, now);
+  const urgent = item.urgency === URGENCY.URGENT && !item.completed;
   const details = [
     item.quantity && item.quantity !== '1' ? item.quantity : null,
     item.notes || null,
@@ -68,7 +60,7 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
       ref={drag?.rowRef}
       style={drag?.rowStyle}
       className={`group flex min-w-0 ${drag?.dragging ? 'relative z-10 shadow-lg' : ''} items-center gap-3 rounded-2xl border bg-white px-3 dark:bg-forest-800 ${large ? 'py-4' : 'py-2.5'} ${
-        urgent || overdue ? 'border-terracotta/60' : 'border-stone-200/80 dark:border-forest-700'
+        urgent ? 'border-terracotta/60' : 'border-stone-200/80 dark:border-forest-700'
       } ${item.completed ? 'opacity-60' : ''}`}
     >
       {drag?.handle}
@@ -101,34 +93,6 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
             </span>
           )}
         </button>
-        {steps.length > 0 && (
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            className={`mt-1 inline-flex items-center gap-1 rounded-full bg-forest-50 px-2 py-0.5 font-medium text-forest-700 dark:bg-forest-700 dark:text-forest-100 ${large ? 'text-base' : 'text-sm'}`}
-          >
-            <ListChecks size={14} /> {stepsDone} of {steps.length} done
-            <ChevronDown size={14} className={expanded ? 'rotate-180' : ''} />
-          </button>
-        )}
-        {steps.length > 0 && expanded && (
-          <ul className="mt-2 grid gap-1" aria-label={`Steps for ${item.name}`}>
-            {steps.map((st) => (
-              <li key={st.id}>
-                <label className={`flex cursor-pointer items-start gap-2 ${large ? 'text-lg' : 'text-sm'}`}>
-                  <input
-                    type="checkbox"
-                    checked={st.done}
-                    onChange={() => onToggleSubtask?.(st.id)}
-                    disabled={!onToggleSubtask}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-forest-600"
-                  />
-                  <span className={`[overflow-wrap:anywhere] ${st.done ? 'text-stone-400 line-through' : ''}`}>{st.text}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        )}
         {showAisleInput && (
           <AisleInput
             itemName={item.name}
@@ -156,37 +120,6 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
               </button>
             )}
             {findAt && !item.completed && <FindAtLink link={findAt} itemName={item.name} secondary={!!aisle} large={large} />}
-          </div>
-        )}
-        {(item.dueAt || item.location || item.link) && (
-          <div className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 ${large ? 'text-base' : 'text-sm'}`}>
-            {item.dueAt ? (
-              <span className={`inline-flex items-center gap-1 font-medium ${overdue ? 'text-terracotta' : 'text-forest-600 dark:text-forest-300'}`}>
-                <CalendarClock size={14} /> {formatDue(item, now)}
-                {overdue && <span className="font-normal">(overdue)</span>}
-              </span>
-            ) : null}
-            {item.location && (
-              <a
-                href={mapsSearchUrl(item.location)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-w-0 items-center gap-1 text-stone-500 underline-offset-2 hover:underline dark:text-stone-400"
-                aria-label={`${item.location}, open in Maps`}
-              >
-                <MapPin size={14} className="shrink-0" /> <span className="[overflow-wrap:anywhere]">{item.location}</span>
-              </a>
-            )}
-            {item.link && (
-              <a
-                href={item.link}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 font-medium text-forest-700 underline-offset-2 hover:underline dark:text-forest-300"
-              >
-                <ExternalLink size={14} /> {/calendar\.google\.com|google\.com\/calendar/.test(item.link) ? 'Open in Calendar' : 'Open link'}
-              </a>
-            )}
           </div>
         )}
       </div>

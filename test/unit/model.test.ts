@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   CATEGORIES,
+  DEFAULT_LISTS,
+  SHOPPING_ICONS,
+  isTaskList,
   URGENCY,
   firstName,
   formatListForSharing,
@@ -142,5 +145,19 @@ describe('firstName', () => {
 
   it('falls back to the email local part', () => {
     expect(firstName(null, 'someone@example.com')).toBe('someone');
+  });
+});
+
+describe('Groceries and Tasks share the lists', () => {
+  it('to-do lists are Tasks’, every other kind is Groceries’', () => {
+    expect(SHOPPING_ICONS.filter(isTaskList)).toEqual([]);
+    expect(isTaskList('chores')).toBe(true);
+    expect(isTaskList('notes')).toBe(true);
+    expect(isTaskList(undefined)).toBe(false);
+  });
+
+  it('a new household starts with lists for both apps', () => {
+    expect(DEFAULT_LISTS.filter((l) => !isTaskList(l.icon)).map((l) => l.id)).toEqual(['groceries', 'pantry', 'costco', 'hardware']);
+    expect(DEFAULT_LISTS.filter((l) => isTaskList(l.icon)).map((l) => l.id)).toEqual(['chores']);
   });
 });

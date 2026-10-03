@@ -14,10 +14,10 @@ test('a helper ticks off anyone’s items and changes only their own; settings a
   await page.getByLabel('Their role').selectOption('helper');
   await page.getByRole('button', { name: 'Add member' }).click();
   await expect(page.getByLabel('Role for helen@example.com')).toHaveValue('helper');
-  if (shots) await page.screenshot({ path: `${shots}/tasks-settings-admin.png` });
+  if (shots) await page.screenshot({ path: `${shots}/groceries-settings-admin.png` });
   await page.getByRole('button', { name: 'Close' }).click();
 
-  const tablet = await browser.newContext({ baseURL: 'http://localhost:5173/tasks/', viewport: { width: 1280, height: 800 } });
+  const tablet = await browser.newContext({ baseURL: 'http://localhost:5176/groceries/', viewport: { width: 1280, height: 800 } });
   const helen = await tablet.newPage();
   const errors = watchErrors(helen);
   await signIn(helen, 'helen@example.com', 'Helen Example');
@@ -35,17 +35,17 @@ test('a helper ticks off anyone’s items and changes only their own; settings a
   await expect(helen.getByRole('button', { name: 'Delete Juice' })).toBeVisible();
   await helen.getByRole('button', { name: 'Mark Eggs done' }).click();
   await expect(page.getByRole('button', { name: 'Mark Eggs not done' })).toBeVisible();
-  if (shots) await helen.screenshot({ path: `${shots}/tasks-helper-lists.png` });
+  if (shots) await helen.screenshot({ path: `${shots}/groceries-helper-lists.png` });
 
   await helen.getByRole('button', { name: 'Settings' }).click();
   await expect(helen.getByText('Only admins can invite or remove people and set roles.')).toBeVisible();
   await expect(helen.getByRole('button', { name: 'Add member' })).toHaveCount(0);
-  if (shots) await helen.screenshot({ path: `${shots}/tasks-helper-settings.png` });
+  if (shots) await helen.screenshot({ path: `${shots}/groceries-helper-settings.png` });
   await helen.getByRole('button', { name: 'Close' }).click();
 
   await helen.getByRole('button', { name: 'Meals', exact: true }).click();
   await expect(helen.getByText('Only admins and members can suggest, save and plan meals.')).toBeVisible();
-  if (shots) await helen.screenshot({ path: `${shots}/tasks-helper-meals.png` });
+  if (shots) await helen.screenshot({ path: `${shots}/groceries-helper-meals.png` });
 
   await helen.getByRole('button', { name: 'Lists', exact: true }).click();
   await helen.getByRole('button', { name: 'Delete Juice' }).click();

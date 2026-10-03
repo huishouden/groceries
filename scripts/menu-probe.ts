@@ -1,6 +1,6 @@
 // Runs the app's exact menu prompt against Gemini through Firebase AI Logic, for tuning the prompt
-// without deploying. Needs an App Check debug token registered for the Tasks web app, stored in
-// ~/.config/huishouden-tasks/appcheck-debug-token.
+// without deploying. Needs an App Check debug token registered for the Groceries web app, stored in
+// ~/.config/huishouden-groceries/appcheck-debug-token.
 //
 //   bun scripts/menu-probe.ts "eggs, mushrooms, steak" "zucchini, rice"     # have, then on the list
 //   DIETS=vegetarian,low-sodium AVOID=olives bun scripts/menu-probe.ts "…" "…"   # diets to try (any from the kit)
@@ -28,7 +28,7 @@ const ctx: MealContext = {
 };
 
 const { apiKey } = (await (await fetch(`${SITE}/__/firebase/init.json`)).json()) as { apiKey: string };
-const debugToken = readFileSync(`${homedir()}/.config/huishouden-tasks/appcheck-debug-token`, 'utf8').trim();
+const debugToken = readFileSync(`${homedir()}/.config/huishouden-groceries/appcheck-debug-token`, 'utf8').trim();
 const exchange = await fetch(`https://firebaseappcheck.googleapis.com/v1/projects/${PROJECT}/apps/${APP_ID}:exchangeDebugToken?key=${apiKey}`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },

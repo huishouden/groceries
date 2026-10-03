@@ -1,13 +1,14 @@
 import { doc, onSnapshot, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { arrayUnion, setDoc } from '@huishouden/pwa-kit/firestore';
 import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
-import { ymdToTime } from '@huishouden/pwa-kit/time';
 import type { ListIcon } from './model';
 import type { NewItem } from './store';
 
 // Google Tasks into household lists: "add eggs to my list" told to the Gemini app lands in Google
-// Tasks, and Tasks brings it in. Which Google list feeds which household list is a household setting
-// (`households/{id}/settings/tasks`, huishouden/rules), so every member's device follows it.
+// Tasks, and Groceries brings it in. Which Google list feeds which household list is a household
+// setting (`households/{id}/settings/tasks`, huishouden/rules), so every member's device follows it.
+// Huishouden Tasks keeps its to-do lists' links in the same document: each app reads every link,
+// acts and edits only on those for its own lists, and saves the others back untouched.
 
 /** What happens to new tasks in one Google list: added straight to a list, or offered for one. */
 export type GoogleTasksMode = 'add' | 'suggest';
@@ -76,7 +77,7 @@ export function markHandled(db: Firestore, householdId: string, settings: TasksS
   return setDoc(settingsDoc(db, householdId), { googleTasks: settings.googleTasks, handled, updatedAt: Date.now(), by }, { merge: true });
 }
 
-/** The item a Google task becomes on a household list: its title, notes and day; a stable id so two devices never add it twice. */
+/** The item a Google task becomes on a shopping list: its title and notes; a stable id so two devices never add it twice. */
 export function googleTaskItem(task: GoogleTask, link: Pick<GoogleTasksLink, 'listId'>, listIcon: ListIcon | undefined, addedBy: string): NewItem {
   return {
     id: googleTaskItemId(task.id),
@@ -86,7 +87,6 @@ export function googleTaskItem(task: GoogleTask, link: Pick<GoogleTasksLink, 'li
     notes: task.notes.slice(0, 500),
     addedBy,
     googleTaskId: task.id,
-    ...(task.due ? { due: ymdToTime(task.due) } : {}),
   };
 }
 

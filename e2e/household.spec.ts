@@ -14,7 +14,6 @@ test('a new household opens its lists even on a slow connection', async ({ conte
     'Pantry Restock',
     'Costco & Bulk',
     'Hardware & Home',
-    'Chores & Notes',
     'New list',
     'Reorder lists',
   ]);
@@ -53,10 +52,10 @@ test('an invited member sees the same lists and changes sync both ways', async (
   await expect(bobRow.getByRole('button', { name: 'Send invite to bob@example.com' })).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
 
-  const phone = await browser.newContext({ ...devices['Pixel 7'], baseURL: 'http://localhost:5173/tasks/' });
+  const phone = await browser.newContext({ ...devices['Pixel 7'], baseURL: 'http://localhost:5176/groceries/' });
   const bob = await phone.newPage();
   await signIn(bob, 'bob@example.com', 'Bob Example');
-  await expect(bob.getByRole('heading', { name: 'Groceries' })).toBeVisible();
+  await expect(bob.locator('main').getByRole('heading', { name: 'Groceries' })).toBeVisible();
   await expect(bob.locator('main li', { hasText: 'Eggs' })).toBeVisible();
 
   await addItem(bob, 'Diapers');
@@ -76,7 +75,7 @@ test('someone not in the household cannot see it', async ({ browser, page }) => 
   await createHousehold(page);
   await addItem(page, 'Secret item');
 
-  const other = await browser.newContext({ baseURL: 'http://localhost:5173/tasks/' });
+  const other = await browser.newContext({ baseURL: 'http://localhost:5176/groceries/' });
   const mallory = await other.newPage();
   await signIn(mallory, 'mallory@example.com', 'Mallory');
   await expect(mallory.getByText('Joining someone?')).toBeVisible();

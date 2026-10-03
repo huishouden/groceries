@@ -39,7 +39,7 @@ test('a detected store is offered once; Not now keeps it away after a reload', a
   await offer.getByRole('button', { name: 'Not at Corner Grocer · Main St' }).click();
   await expect(offer).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Groceries', level: 1 })).toBeVisible();
+  await expect(page.locator('main').getByRole('heading', { name: 'Groceries', level: 1 })).toBeVisible();
   await page.waitForTimeout(1500);
   await expect(page.getByRole('region', { name: 'Detected store' })).toHaveCount(0);
 });
@@ -80,7 +80,7 @@ test('shopping a detected store: optional aisles while checking off, then groupe
   await expect(page.getByRole('status').filter({ hasText: 'Shopping at' })).toHaveCount(0);
   // Still standing in the store: coming back to the app must not restart the trip.
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Groceries', level: 1 })).toBeVisible();
+  await expect(page.locator('main').getByRole('heading', { name: 'Groceries', level: 1 })).toBeVisible();
   await page.waitForTimeout(1500);
   await expect(page.getByRole('status').filter({ hasText: 'Shopping at' })).toHaveCount(0);
   // Nor offered again as a new shop, which would save a duplicate store.

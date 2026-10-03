@@ -15,20 +15,20 @@ export interface FirebaseHandles {
 
 export const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 
-/** The OAuth web client: silent sign-in (One Tap) and Google API tokens (Calendar) use it. */
+/** The OAuth web client: silent sign-in (One Tap) and Google API tokens (Google Tasks) use it. */
 export const googleClientId: string | undefined = import.meta.env.VITE_GOOGLE_CLIENT_ID || undefined;
 // Google API tokens come from Google Identity Services with this client, never from Firebase sign-in.
 configureGoogleTokens({ clientId: googleClientId, preload: !useEmulators });
 
-/** The "Tasks" web app in huishouden-piekstra. Public, like the rest of the web config. */
-const APP_ID = '1:865471112898:web:88de281c1be2181a4afd5b';
+/** The "Groceries" web app in huishouden-piekstra. Public, like the rest of the web config. */
+const APP_ID = '1:865471112898:web:49d04d3cddbfd7474afd5b';
 
-/** reCAPTCHA Enterprise site key for App Check on huishouden-piekstra.web.app (and the old huishouden-tasks.web.app). Site keys are public. */
+/** reCAPTCHA Enterprise site key for App Check on huishouden-piekstra.web.app. Site keys are public. */
 const APP_CHECK_SITE_KEY = '6LeCC9otAAAAAN4XiBDSnvtKapMGWRarZoUjRGzM'; // gitleaks:allow (public site key, sent to every visitor)
 
 async function loadConfig(): Promise<FirebaseOptions> {
   if (useEmulators) {
-    return { apiKey: 'demo-key', projectId: 'demo-huishouden-tasks', authDomain: 'localhost', appId: 'demo-app' };
+    return { apiKey: 'demo-key', projectId: 'demo-huishouden-groceries', authDomain: 'localhost', appId: 'demo-app' };
   }
   // CI builds get the web config from the repo's VITE_FIREBASE_* variables (public by design).
   if (import.meta.env.VITE_FIREBASE_API_KEY) return firebaseConfigFromEnv(import.meta.env);
@@ -54,12 +54,12 @@ export function getFirebase(): Promise<FirebaseHandles> {
     }
     const auth = getAuth(app);
     // Error, speed and anonymous usage reports (the portal's /privacy page); off without VITE_NEWRELIC_*.
-    startObservability({ app: 'tasks', env: import.meta.env });
+    startObservability({ app: 'groceries', env: import.meta.env });
     // Persistent cache; writes from @huishouden/pwa-kit/firestore, so one made just before the app closes is kept.
     const db = initFirestore(app, { auth });
     if (useEmulators) {
-      connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-      connectFirestoreEmulator(db, '127.0.0.1', 8080);
+      connectAuthEmulator(auth, 'http://127.0.0.1:9199', { disableWarnings: true });
+      connectFirestoreEmulator(db, '127.0.0.1', 8180);
       // Browser tests sign in with an emulator-only Google credential instead of driving the popup.
       Object.assign(window, {
         __testSignIn: (email: string, name: string) =>

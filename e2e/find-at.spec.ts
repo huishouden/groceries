@@ -57,14 +57,6 @@ test('with no store detected, an item offers the household’s stores', async ({
   await expect(page.getByRole('dialog').getByRole('group', { name: 'Find it at a store' }).getByRole('link')).toHaveText(['Example Market']);
 });
 
-test('to-dos have no store links', async ({ page }) => {
-  await page.goto('./');
-  await ready(page);
-  await page.getByRole('button', { name: /^Chores & Notes/ }).first().click();
-  await page.getByRole('button', { name: 'Edit Garage clean-out' }).click();
-  await expect(page.getByRole('dialog').getByRole('group', { name: 'Find it at a store' })).toHaveCount(0);
-});
-
 for (const viewport of [
   { name: 'phone', width: 390, height: 844 },
   { name: 'tablet', width: 1024, height: 768 },
