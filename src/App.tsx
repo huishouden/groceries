@@ -6,8 +6,8 @@ import { inviteMember, markJoined, removeMember, saveMyProfile } from '@huishoud
 import { setRole } from '@huishouden/pwa-kit/roles';
 import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
 import { AppBar } from '@huishouden/pwa-kit/react/app-bar';
-import { SampleBanner, SectionTabs, cardClass } from '@huishouden/pwa-kit/react/ui';
-import { CloudOff, Loader2, Settings } from 'lucide-react';
+import { SampleBanner, SectionTabs, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
+import { CloudOff, CookingPot, ListChecks, Loader2, Settings, Store, UtensilsCrossed } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
 import { ErrorNotice } from './components/ErrorNotice';
 import { friendlyError, type FriendlyError } from './lib/errors';
@@ -476,11 +476,11 @@ function HouseholdApp({
   };
   const clearCompleted = (items: ListItem[]) => offerUndo(repo.clearCompleted(items.filter(mayChange)), 'cleared');
 
-  const modes: { id: Mode; label: string }[] = [
-    { id: 'lists', label: 'Lists' },
-    { id: 'hub', label: 'Kitchen' },
-    { id: 'store', label: 'Store' },
-    { id: 'meals', label: 'Meals' },
+  const modes: (Tab & { id: Mode })[] = [
+    { id: 'lists', label: 'Lists', icon: ListChecks },
+    { id: 'hub', label: 'Kitchen', icon: CookingPot },
+    { id: 'store', label: 'Store', icon: Store },
+    { id: 'meals', label: 'Meals', icon: UtensilsCrossed },
   ];
 
   return (

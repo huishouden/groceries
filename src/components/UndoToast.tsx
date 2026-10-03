@@ -21,7 +21,7 @@ export function UndoToast({ action, onDismiss }: { action: UndoAction; onDismiss
     return () => window.clearTimeout(t);
   }, []);
   return (
-    <div className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
+    <div className="safe-bottom pointer-events-none fixed inset-x-0 bottom-(--hh-bottom-nav) z-40 flex justify-center px-4">
       <div
         role="status"
         className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl bg-forest-800 py-2 pr-2 pl-4 text-white shadow-lg dark:bg-forest-100 dark:text-forest-900"
