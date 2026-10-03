@@ -82,3 +82,28 @@ test('a helper ticks off a member’s item and adds their own, but can’t delet
   await page.locator('main li', { hasText: theirs }).getByRole('button', { name: `Delete ${theirs}` }).click();
   await expect(page.locator('main li', { hasText: theirs })).toHaveCount(0);
 });
+
+test('what is left to buy shows as one Groceries line on the portal’s To-do list', async ({ page, context }) => {
+  await signInTestUser(page, { email: 'test-a@example.com' });
+  await openGroceries(page);
+  const name = `Test lentils ${Date.now().toString(36)}`;
+  await page.getByLabel('New item').fill(name);
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.locator('main li', { hasText: name })).toBeVisible();
+
+  try {
+    // Groceries stays open to publish (a few seconds after the change); the portal is at / on the same site.
+    const portal = await context.newPage();
+    await portal.goto('/todo');
+    const line = portal.getByRole('listitem', { name: /^Groceries:/ });
+    await expect(line, 'the Groceries line on the To-do list').toHaveCount(1, { timeout: 30_000 });
+    await expect(line).toHaveAccessibleName(/^Groceries: \d+ things? on the list$/);
+    await expect(line.locator('a[href*="/groceries/"]').first()).toBeVisible();
+    await expect(line.locator('[data-todo-action]')).toHaveCount(0);
+    await portal.close();
+  } finally {
+    // Leave the shared household as it was.
+    await page.locator('main li', { hasText: name }).getByRole('button', { name: `Delete ${name}` }).click();
+    await expect(page.locator('main li', { hasText: name })).toHaveCount(0);
+  }
+});

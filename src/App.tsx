@@ -305,7 +305,8 @@ function HouseholdApp({
   // Admins and members change anything; helpers and kids only what they added (the rules check `by`).
   const mayChange = (item: ListItem) => mayChangeItem(item, role.role, email);
   const canSetUp = role.can('change-settings');
-  usePublish(db, household.id, email, plan, !demo, role.restricted);
+  const shopping = useMemo(() => (data.loaded ? { lists: data.lists, items: data.items } : null), [data.loaded, data.lists, data.items]);
+  usePublish(db, household.id, email, plan, shopping, !demo, role.restricted);
   const repo = useMemo(() => new HouseholdRepo(db, household.id, demo), [db, household.id, demo]);
   const [savedMode, setMode] = usePref<Mode>('mode', 'lists');
   const [urlMode, setUrlMode] = useState<Mode | null>(initialMode);
