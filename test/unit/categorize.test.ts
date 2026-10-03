@@ -39,8 +39,6 @@ describe('guessCategory', () => {
     ['berries', C.PRODUCE],
     ['get milk', C.DAIRY_EGGS],
     // To-dos on a shopping list.
-    ['call plumber', C.CHORES],
-    ['renew registration', C.CHORES],
     ['birthday card', C.OTHER],
   ])('%s → %s', (name, expected) => {
     expect(guessCategory(name)).toBe(expected);
@@ -64,10 +62,6 @@ describe('guessCategory', () => {
     expect(guessCategory('tie')).toBe(C.OTHER);
   });
 
-  it('files everything on a chores or notes list as a task', () => {
-    expect(guessCategory('Wash the car', 'chores')).toBe(C.CHORES);
-    expect(guessCategory('Note for the dog sitter', 'notes')).toBe(C.CHORES);
-  });
 
   it('falls back to Hardware on a hardware list', () => {
     expect(guessCategory('weatherstrip', 'hardware')).toBe(C.HARDWARE_HOME);

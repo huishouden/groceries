@@ -77,11 +77,11 @@ test('opening Store mode at a saved store picks it automatically', async ({ cont
 test('lists can be reordered for everyone', async ({ page }) => {
   await page.getByRole('button', { name: 'Reorder lists' }).click();
   const dialog = page.getByRole('dialog', { name: 'Reorder lists' });
-  await moveRow(page, 'Chores & Notes', -4);
+  await moveRow(page, 'Hardware & Home', -3);
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(page.locator('nav[aria-label="Lists"] > button').first()).toHaveText(/Chores & Notes/);
+  await expect(page.locator('nav[aria-label="Lists"] > button').first()).toHaveText(/Hardware & Home/);
   await page.reload();
-  await expect(page.locator('nav[aria-label="Lists"] > button').first()).toHaveText(/Chores & Notes/);
+  await expect(page.locator('nav[aria-label="Lists"] > button').first()).toHaveText(/Hardware & Home/);
 });
 
 test('the layout editor keeps section names readable on a phone', async ({ page }) => {

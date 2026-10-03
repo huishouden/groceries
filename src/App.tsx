@@ -6,7 +6,6 @@ import { inviteMember, markJoined, removeMember, saveMyProfile } from '@huishoud
 import { setRole } from '@huishouden/pwa-kit/roles';
 import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
 import { AppBar } from '@huishouden/pwa-kit/react/app-bar';
-import { NotificationsCard } from '@huishouden/pwa-kit/react/push';
 import { SampleBanner, SectionTabs, cardClass } from '@huishouden/pwa-kit/react/ui';
 import { CloudOff, Loader2, Settings } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
@@ -46,11 +45,10 @@ import { PrefScope, useApplyTheme, useInstallPrompt, useOnline, usePref, type Th
 import { HubView } from './views/HubView';
 import { ListsView } from './views/ListsView';
 import { StoreView } from './views/StoreView';
-import { NearbyErrand } from './components/NearbyErrand';
 import { StoreBanner } from './components/StoreBanner';
 import { AislePrompt } from './components/AislePrompt';
 import { placeLabel } from './data/places';
-import { isTaskList, stapleKey } from './data/model';
+import { stapleKey } from './data/model';
 import { storeSearchLink } from './data/chains';
 import { MealsView } from './views/MealsView';
 import { planDays, planMeal, unplanMeal } from './data/mealPlan';
@@ -58,7 +56,7 @@ import { trackView } from '@huishouden/pwa-kit/observability';
 
 type Mode = 'lists' | 'hub' | 'store' | 'meals';
 
-/** The Huishouden portal, at the root of the site Tasks shares (pwa-kit docs/one-site.md). */
+/** The Huishouden portal, at the root of the site Groceries shares (pwa-kit docs/one-site.md). */
 const PORTAL_URL = '/';
 const VERSION = `${import.meta.env.VITE_APP_VERSION} (${import.meta.env.VITE_BUILD_SHA})`;
 
@@ -74,7 +72,7 @@ interface FrameProps {
 function Frame({ user, dark, signingIn, onSignIn, onSignOut, nav, actions, children }: FrameProps & { nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex h-full flex-col">
-      <AppBar app="Tasks" glyph="check" portalUrl={PORTAL_URL} version={VERSION} theme={dark ? 'dark' : 'light'} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut}>
+      <AppBar app="Groceries" glyph="cart" portalUrl={PORTAL_URL} version={VERSION} theme={dark ? 'dark' : 'light'} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut}>
         {nav}
         {actions}
       </AppBar>
@@ -225,7 +223,7 @@ function Onboarding({ db, email, displayName }: { db: Firestore; email: string; 
             <a href={PORTAL_URL} className="font-medium text-forest-700 underline underline-offset-2 dark:text-forest-300">
               Huishouden
             </a>{' '}
-            or in Tasks' Settings. This screen switches to your shared lists as soon as they do.
+            or in Groceries' Settings. This screen switches to your shared lists as soon as they do.
           </p>
         </div>
         <div className="border-t border-stone-200 pt-5 dark:border-forest-700">
@@ -307,7 +305,7 @@ function HouseholdApp({
   // Admins and members change anything; helpers and kids only what they added (the rules check `by`).
   const mayChange = (item: ListItem) => mayChangeItem(item, role.role, email);
   const canSetUp = role.can('change-settings');
-  usePublish(db, household.id, email, data, plan, !demo, role.restricted);
+  usePublish(db, household.id, email, plan, !demo, role.restricted);
   const repo = useMemo(() => new HouseholdRepo(db, household.id, demo), [db, household.id, demo]);
   const [savedMode, setMode] = usePref<Mode>('mode', 'lists');
   const [urlMode, setUrlMode] = useState<Mode | null>(initialMode);
@@ -363,7 +361,6 @@ function HouseholdApp({
     setAskAisleFor(!item.completed && shoppingStoreId && !aisles.has(stapleKey(item.name)) ? item.id : null);
   };
   const findStore = stores.find((st) => st.id === aisleStoreId);
-  const listIcon = (listId: string) => data.lists.find((l) => l.id === listId)?.icon;
   const aisleProps = aisleStoreId
     ? {
         aisleFor: (item: ListItem) => aisles.get(stapleKey(item.name)),
@@ -372,7 +369,7 @@ function HouseholdApp({
           setAskAisleFor(null);
         },
         onDismissAisle: () => setAskAisleFor(null),
-        findAt: (item: ListItem) => (findStore && !isTaskList(listIcon(item.listId)) ? storeSearchLink(findStore.name, item.name) : null),
+        findAt: (item: ListItem) => (findStore ? storeSearchLink(findStore.name, item.name) : null),
       }
     : undefined;
   // Waits for the first stores snapshot, so a saved store is never offered as a new shop.
@@ -391,17 +388,18 @@ function HouseholdApp({
       onEnd={endShopping}
     />
   );
-  // The tablet stays home, so the errand line is for Lists and Store on the go.
-  const errandBanner = <NearbyErrand items={data.items} onDone={toggle} />;
 
   // Google Tasks: what the Gemini app or Google Assistant added there, brought into the chosen lists.
   const [tasksSettings, setTasksSettings] = useState<TasksSettings | null>(null);
   useEffect(() => (demo ? undefined : watchTasksSettings(db, household.id, setTasksSettings)), [db, household.id, demo]);
-  const links = useMemo(() => tasksSettings?.googleTasks ?? [], [tasksSettings]);
+  // Every link in the household's settings; Groceries acts only on those for its own lists (the rest
+  // are Huishouden Tasks' to-do lists, saved back untouched).
+  const allLinks = useMemo(() => tasksSettings?.googleTasks ?? [], [tasksSettings]);
+  const links = useMemo(() => allLinks.filter((l) => data.lists.some((list) => list.id === l.listId)), [allLinks, data.lists]);
   const takenIn = useMemo(() => new Set([...(tasksSettings?.handled ?? []), ...data.items.flatMap((i) => (i.googleTaskId ? [i.googleTaskId] : []))]), [tasksSettings, data.items]);
   const googleTasks = useGoogleTasksSuggestions({
     auth,
-    app: 'tasks',
+    app: 'groceries',
     // Bringing tasks in records them in the household's settings: admins' and members' devices only.
     listIds: canSetUp ? links.map((l) => l.googleListId) : [],
     isImported: (t) => takenIn.has(t.id),
@@ -544,7 +542,7 @@ function HouseholdApp({
             onAdd={add}
             onAddStaple={addStaple}
             onToggle={toggle}
-            onToggleSubtask={(i, id) => repo.toggleSubtask(i, id)}
+           
             aisle={aisleProps}
             onEdit={(item) => mayChange(item) && setEditing(item)}
             mayChange={mayChange}
@@ -583,7 +581,7 @@ function HouseholdApp({
             selectedList={selectedList}
             onSelectList={setSelectedId}
             onToggle={toggle}
-            onToggleSubtask={(i, id) => repo.toggleSubtask(i, id)}
+           
             aisle={aisleProps}
             onClearCompleted={clearCompleted}
             stores={stores}
@@ -596,12 +594,7 @@ function HouseholdApp({
               }
             }}
             aisles={aisles}
-            banner={
-              <>
-                {errandBanner}
-                {storeBanner}
-              </>
-            }
+            banner={storeBanner}
             canSetUp={canSetUp}
             onCreateStore={(name) => repo.createStore(name, [])}
             onUpdateStore={(id, changes) => repo.updateStore(id, changes)}
@@ -619,7 +612,6 @@ function HouseholdApp({
             banner={
               <>
                 {googleTasksCard}
-                {errandBanner}
                 {shoppingHere ? storeBanner : null}
               </>
             }
@@ -629,7 +621,7 @@ function HouseholdApp({
             onAdd={add}
             onAddStaple={addStaple}
             onToggle={toggle}
-            onToggleSubtask={(i, id) => repo.toggleSubtask(i, id)}
+           
             aisle={aisleProps}
             onEdit={(item) => mayChange(item) && setEditing(item)}
             onDelete={deleteItem}
@@ -700,23 +692,12 @@ function HouseholdApp({
               <GoogleTasksSettings
                 auth={auth}
                 lists={data.lists}
-                links={links}
+                taskLists={data.taskLists}
+                links={allLinks}
                 onSave={(next) => saveGoogleTasksLinks(db, household.id, next, email)}
                 onConnected={() => void googleTasks.scan()}
               />
             )
-          }
-          notifications={
-            !demo && <NotificationsCard
-              db={db}
-              householdId={household.id}
-              user={{ email }}
-              app="tasks"
-              vapidKey={import.meta.env.VITE_VAPID_PUBLIC_KEY}
-              offText="Get a notification here an hour before a task is due, and on the morning of a task due that day."
-              onText="On. This device tells you an hour before a task is due, and on the morning of a task due that day."
-              plain
-            />
           }
           onAddMember={(e, r) => inviteMember(db, { ...household, roles: household.roles ?? {} }, e, r)}
           onRemoveMember={(e) => removeMember(db, { ...household, roles: household.roles ?? {} }, e)}

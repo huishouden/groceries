@@ -4,8 +4,7 @@ import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableItems } from '../components/SortableItems';
 import { StaplesShelf } from '../components/StaplesShelf';
 import { ListIconBadge } from '../components/ui';
-import { CalendarClock } from 'lucide-react';
-import { formatDue, isOverdue, isTaskList, sortItems, upcomingItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
+import { sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
 import { useWakeLock } from '../lib/prefs';
 
 interface Props {
@@ -17,7 +16,6 @@ interface Props {
   onAdd: (req: AddRequest) => void;
   onAddStaple: (s: Staple) => void;
   onToggle: (item: ListItem) => void;
-  onToggleSubtask: (item: ListItem, subtaskId: string) => void;
   aisle?: AisleProps;
   onEdit: (item: ListItem) => void;
   /** Whether this person may change the item: helpers and kids only their own. */
@@ -40,7 +38,6 @@ export function HubView(props: Props) {
   useWakeLock(true);
   const now = useClock();
   const listItems = useMemo(() => items.filter((i) => i.listId === selectedList.id), [items, selectedList.id]);
-  const upcoming = upcomingItems(items, now.getTime());
   const pending = sortItems(listItems.filter((i) => !i.completed));
   const recentlyDone = listItems
     .filter((i) => i.completed && i.completedAt && now.getTime() - i.completedAt < 6 * 60 * 60 * 1000)
@@ -74,26 +71,6 @@ export function HubView(props: Props) {
             );
           })}
         </div>
-        {upcoming.length > 0 && (
-          <section aria-label="Coming up" className="rounded-2xl border border-stone-200 bg-white p-3 dark:border-forest-700 dark:bg-forest-800">
-            <h2 className="mb-2 text-xs font-semibold tracking-wider text-stone-500 uppercase">Coming up</h2>
-            <ul className="grid gap-1.5">
-              {upcoming.slice(0, 5).map((item) => (
-                <li key={item.id}>
-                  <button onClick={() => props.onEdit(item)} className="flex w-full items-start gap-2 text-left">
-                    <CalendarClock size={18} className={`mt-0.5 shrink-0 ${isOverdue(item, now.getTime()) ? 'text-terracotta' : 'text-forest-600 dark:text-forest-300'}`} />
-                    <span className="min-w-0">
-                      <span className="block font-medium [overflow-wrap:anywhere]">{item.name}</span>
-                      <span className={`text-sm ${isOverdue(item, now.getTime()) ? 'text-terracotta' : 'text-stone-500'}`}>
-                        {formatDue(item, now.getTime())} · {lists.find((l) => l.id === item.listId)?.name}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
         <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} large placeholder={`Add to ${selectedList.name}…`} />
         <div className="min-h-0 overflow-y-auto">
           <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} limit={18} large />
@@ -110,13 +87,13 @@ export function HubView(props: Props) {
             items={pending}
             onMove={(from, to) => props.onMove(pending, from, to)}
             renderItem={(item, drag) => (
-              <ItemRow key={item.id} item={item} drag={drag} large showCategory={!isTaskList(selectedList.icon)} onToggle={() => props.onToggle(item)} onToggleSubtask={(id) => props.onToggleSubtask(item, id)} {...aisleRowProps(props.aisle, item)} onEdit={props.mayChange?.(item) === false ? undefined : () => props.onEdit(item)} />
+              <ItemRow key={item.id} item={item} drag={drag} large showCategory onToggle={() => props.onToggle(item)} {...aisleRowProps(props.aisle, item)} onEdit={props.mayChange?.(item) === false ? undefined : () => props.onEdit(item)} />
             )}
           />
           {recentlyDone.length > 0 && (
             <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
               {recentlyDone.map((item) => (
-                <ItemRow key={item.id} item={item} large onToggle={() => props.onToggle(item)} onToggleSubtask={(id) => props.onToggleSubtask(item, id)} {...aisleRowProps(props.aisle, item)} />
+                <ItemRow key={item.id} item={item} large onToggle={() => props.onToggle(item)} {...aisleRowProps(props.aisle, item)} />
               ))}
             </ul>
           )}

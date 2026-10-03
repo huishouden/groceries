@@ -5,6 +5,9 @@ import { addDays, toYmd, type Ymd } from '@huishouden/pwa-kit/time';
 import type { Meal } from './menus';
 import { appLink } from '../lib/appLink';
 
+/** The app that owns planned dinners on the household agenda (publish.ts APP). */
+const AGENDA_APP = 'groceries';
+
 /** Slots a day can be planned in (snacks are not planned). */
 export const PLAN_TYPES = ['breakfast', 'lunch', 'dinner'] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
@@ -27,7 +30,6 @@ export function planDays(now: number = Date.now()): Ymd[] {
   return Array.from({ length: 7 }, (_, i) => addDays(today, i));
 }
 
-const TASKS_APP = 'tasks';
 const MEALS_URL = appLink('?mode=meals');
 
 /** The agenda record for a planned dinner, so it shows in the portal's Calendar and Today. */
@@ -45,7 +47,7 @@ export function planQuery(db: Firestore, householdId: string, from: Ymd, to: Ymd
 const agendaCollection = (db: Firestore, householdId: string) => collection(db, 'households', householdId, 'agenda');
 
 /** The agenda document a planned dinner on `day` is published as (one per day, idempotent). */
-const dinnerAgendaId = (day: Ymd) => agendaId(TASKS_APP, agendaRef(day), allDayStart(day));
+const dinnerAgendaId = (day: Ymd) => agendaId(AGENDA_APP, agendaRef(day), allDayStart(day));
 
 /** What a planned dinner publishes: an all-day "Dinner: <meal>" linking to Meals. */
 export function dinnerAgenda(planned: Pick<PlannedMeal, 'day' | 'name'>): AgendaInput {
@@ -61,7 +63,7 @@ export async function planMeal(db: Firestore, householdId: string, day: Ymd, typ
   const batch = writeBatch(db);
   batch.set(doc(planCollection(db, householdId), slotId(day, type)), planned);
   if (type === 'dinner') {
-    const entry = agendaDoc(TASKS_APP, dinnerAgenda({ day, name: meal.name }), by);
+    const entry = agendaDoc(AGENDA_APP, dinnerAgenda({ day, name: meal.name }), by);
     batch.set(doc(agendaCollection(db, householdId), dinnerAgendaId(day)), entry);
   }
   await batch.commit();

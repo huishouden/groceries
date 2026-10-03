@@ -1,4 +1,4 @@
-import { CATEGORIES, isTaskList, type Category, type ListIcon } from './model';
+import { CATEGORIES, type Category, type ListIcon } from './model';
 
 const C = CATEGORIES;
 
@@ -104,12 +104,6 @@ const VOCABULARY: [Category, string[]][] = [
   ],
 ];
 
-/** Task-like openings that mark a to-do rather than something to buy. */
-const TASK_VERBS = [
-  'book', 'call', 'cancel', 'check', 'clean', 'confirm', 'create', 'email', 'fix', 'install', 'leave', 'mow', 'organize',
-  'pack', 'pay', 'prep', 'renew', 'return', 'schedule', 'sterilize', 'text', 'wash',
-];
-
 function singular(word: string): string {
   if (word.length <= 3) return word;
   if (word.endsWith('ies')) return `${word.slice(0, -3)}y`;
@@ -190,17 +184,13 @@ function fuzzyWord(word: string): Category | null {
 
 /**
  * Best-effort aisle from the item's name, tolerant of plurals and typos. Returns OTHER when unsure,
- * which is the signal to ask Gemini. Items on chores or notes lists are always Chores & Tasks.
+ * which is the signal to ask Gemini.
  */
 export function guessCategory(name: string, listIcon?: ListIcon): Category {
-  // To-dos, not shopping, so a guess there should not be a store aisle.
-  if (isTaskList(listIcon)) return C.CHORES;
   const w = words(name);
   if (w.length === 0) return listIcon === 'hardware' ? C.HARDWARE_HOME : C.OTHER;
   const joined = ` ${w.join(' ')} `;
   if (w.includes('frozen')) return C.FROZEN;
-  const first = w[0];
-  if (TASK_VERBS.some((v) => joined.startsWith(` ${v} `)) && !WORDS.has(first)) return C.CHORES;
   for (const [phrase, category] of PHRASES) if (joined.includes(` ${phrase} `)) return category;
   // The last word is usually the thing itself ("chicken broth" aside, handled as a phrase).
   for (let i = w.length - 1; i >= 0; i--) {

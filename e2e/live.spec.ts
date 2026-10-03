@@ -12,7 +12,7 @@ test('loads with no runtime errors', async ({ page }) => {
 test('is installable with the suite name and icons', async ({ page, request }) => {
   await expectInstallable(page, request);
   const manifest = await (await request.get('manifest.webmanifest')).json();
-  expect(manifest).toMatchObject({ name: 'Huishouden Tasks', short_name: 'Tasks', description: 'Shared lists and chores' });
+  expect(manifest).toMatchObject({ name: 'Huishouden Groceries', short_name: 'Groceries', description: 'What to get, and where it is' });
 });
 
 test('Google sign-in is reachable for this domain', async ({ page, context }) => {
@@ -20,14 +20,14 @@ test('Google sign-in is reachable for this domain', async ({ page, context }) =>
 });
 
 test('opens in the Huishouden frame', async ({ page }) => {
-  await expectHuishoudenFrame(page, { app: 'Tasks', portalUrl: '/', path: './' });
+  await expectHuishoudenFrame(page, { app: 'Groceries', portalUrl: '/', path: './' });
 });
 
 test('a shared link shows a preview', async ({ page, request }) => {
   await page.goto('./');
-  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', 'Shared lists and chores');
+  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', 'What to get, and where it is');
   const image = await page.locator('meta[property="og:image"]').getAttribute('content');
-  expect(image).toBe('https://huishouden-piekstra.web.app/tasks/og.png');
+  expect(image).toBe('https://huishouden-piekstra.web.app/groceries/og.png');
   expect((await request.get('og.png')).ok()).toBe(true);
 });
 
@@ -36,7 +36,7 @@ test('signed out, it opens on the invented sample household', async ({ page }) =
   page.on('request', (r) => r.url().includes('firestore.googleapis.com') && firestore.push(r.url()));
   await page.goto('./');
   await expect(page.getByText('Sample data')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('heading', { name: 'Groceries' })).toBeVisible();
+  await expect(page.locator('main').getByRole('heading', { name: 'Groceries' })).toBeVisible();
   await page.getByLabel('New item').fill('Sample oats');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(page.locator('main li', { hasText: 'Sample oats' })).toBeVisible();

@@ -20,7 +20,6 @@ interface Props {
   selectedList: ShoppingList;
   onSelectList: (id: string) => void;
   onToggle: (item: ListItem) => void;
-  onToggleSubtask: (item: ListItem, subtaskId: string) => void;
   aisle?: AisleProps;
   onClearCompleted: (items: ListItem[]) => void;
   stores: StoreLayout[];
@@ -217,7 +216,7 @@ export function StoreView(props: Props) {
               </h2>
               <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
                 {group.items.map((item) => (
-                  <ItemRow key={item.id} item={item} large onToggle={() => props.onToggle(item)} onToggleSubtask={(id) => props.onToggleSubtask(item, id)} {...aisleRowProps(props.aisle, item)} />
+                  <ItemRow key={item.id} item={item} large onToggle={() => props.onToggle(item)} {...aisleRowProps(props.aisle, item)} />
                 ))}
               </ul>
             </section>

@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "target": "tasks",
+    "target": "groceries",
     "public": "dist",
     "ignore": [
       "firebase.json",

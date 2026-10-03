@@ -5,8 +5,8 @@
   "targets": {
     "huishouden-piekstra": {
       "hosting": {
-        "tasks": [
-          "huishouden-tasks"
+        "groceries": [
+          "huishouden-groceries"
         ]
       }
     }
