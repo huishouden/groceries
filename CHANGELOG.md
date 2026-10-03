@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/huishouden/groceries/compare/v1.0.0...v1.1.0) (2026-10-03)
+
+
+### Features
+
+* modes in a bottom bar on phones (kit 0.52.0) ([#3](https://github.com/huishouden/groceries/issues/3)) ([3861a53](https://github.com/huishouden/groceries/commit/3861a5308a5cd13548a95f2dee3ab1c46e272248))
+
 ## [1.0.0](https://github.com/huishouden/groceries/compare/v0.1.0...v1.0.0) (2026-10-03)
 
 
