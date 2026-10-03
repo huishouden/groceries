@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { Check, LocateFixed, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, LocateFixed, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { RoleNote } from '@huishouden/pwa-kit/react/roles';
 import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableRows } from '../components/SortableRows';
 import { Chip, ghostButton, inputClass, primaryButton } from '../components/ui';
 import { moveInOrder, stapleKey, type Category, type ListItem, type ShoppingList } from '../data/model';
-import { fullCategoryOrder, groupWithAisles, type GeoPoint, type StoreLayout } from '../data/stores';
+import { fullCategoryOrder, groupWithAisles, leftFirst, type GeoPoint, type StoreLayout } from '../data/stores';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { useWakeLock } from '../lib/prefs';
 
@@ -93,6 +93,10 @@ function useStickySections(listRef: RefObject<HTMLDivElement | null>, headRef: R
   }, [listRef, headRef, showing]);
 }
 
+/** The sticky section heading's look (the In cart group's too). */
+const sectionHeading =
+  'sticky top-(--section-top) z-[5] -mx-4 mb-1 border-b border-transparent bg-cream px-4 py-1.5 text-sm font-semibold tracking-wider text-stone-500 uppercase sm:-mx-6 sm:px-6 data-stuck:border-stone-200 dark:bg-forest-900 dark:data-stuck:border-forest-700';
+
 function cleanLabels(labels: Partial<Record<Category, string>>): Partial<Record<Category, string>> {
   return Object.fromEntries(Object.entries(labels).flatMap(([k, v]) => (v?.trim() ? [[k, v.trim()]] : [])));
 }
@@ -110,7 +114,8 @@ export function StoreView(props: Props) {
   const total = listItems.length;
   const done = listItems.filter((i) => i.completed).length;
   const progress = total === 0 ? 0 : done / total;
-  const sections = groupWithAisles(listItems, props.aisles, store?.categoryOrder, store?.aisleLabels, stapleKey);
+  const { open: sections, inCart } = leftFirst(groupWithAisles(listItems, props.aisles, store?.categoryOrder, store?.aisleLabels, stapleKey));
+  const [showCart, setShowCart] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const headRef = useRef<HTMLDivElement>(null);
@@ -124,13 +129,16 @@ export function StoreView(props: Props) {
   return (
     <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4 p-4 sm:p-6">
       {props.banner}
-      <div className="scrollbar-none flex gap-2 overflow-x-auto">
-        {lists.map((l) => (
-          <Chip key={l.id} active={l.id === selectedList.id} onClick={() => props.onSelectList(l.id)}>
-            {l.name}
-          </Chip>
-        ))}
-      </div>
+      {/* One list needs no picker: its name heads the checklist below. */}
+      {lists.length > 1 && (
+        <div className="scrollbar-none flex gap-2 overflow-x-auto">
+          {lists.map((l) => (
+            <Chip key={l.id} active={l.id === selectedList.id} onClick={() => props.onSelectList(l.id)}>
+              {l.name}
+            </Chip>
+          ))}
+        </div>
+      )}
 
       <section aria-label="Store" className="grid gap-2 rounded-2xl border border-stone-200 bg-white p-3 dark:border-forest-700 dark:bg-forest-800">
         <div className="flex flex-wrap items-center gap-2">
@@ -201,11 +209,11 @@ export function StoreView(props: Props) {
               <div className="h-full rounded-full bg-forest-500 transition-all" style={{ width: `${progress * 100}%` }} />
             </div>
           </div>
-          {sections.length === 0 && <p className="p-8 text-center text-stone-500">This list is empty.</p>}
+          {total === 0 && <p className="p-8 text-center text-stone-500">This list is empty.</p>}
           {sections.map((group) => (
             <section key={group.key} aria-label={group.title}>
               {/* Stays under the list's heading while its items scroll by, so you know which section they are in. */}
-              <h2 className="sticky top-(--section-top) z-[5] -mx-4 mb-1 border-b border-transparent bg-cream px-4 py-1.5 text-sm font-semibold tracking-wider text-stone-500 uppercase sm:-mx-6 sm:px-6 data-stuck:border-stone-200 dark:bg-forest-900 dark:data-stuck:border-forest-700">
+              <h2 className={sectionHeading}>
                 {group.title}
                 {group.label && (
                   <span className="ml-1.5 rounded-md bg-forest-100 px-1.5 py-0.5 tracking-normal text-forest-700 normal-case dark:bg-forest-700 dark:text-forest-100">
@@ -221,6 +229,22 @@ export function StoreView(props: Props) {
               </ul>
             </section>
           ))}
+          {inCart.length > 0 && (
+            <section aria-label="In cart">
+              <h2 className={`${sectionHeading} py-0`}>
+                <button type="button" onClick={() => setShowCart(!showCart)} aria-expanded={showCart} className="-ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 tracking-wider uppercase">
+                  <ChevronDown size={16} className={showCart ? 'rotate-180' : ''} aria-hidden="true" /> In cart ({inCart.length})
+                </button>
+              </h2>
+              {showCart && (
+                <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
+                  {inCart.map((item) => (
+                    <ItemRow key={item.id} item={item} large onToggle={() => props.onToggle(item)} {...aisleRowProps(props.aisle, item)} />
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
           {done > 0 && (
             <button onClick={() => props.onClearCompleted(listItems)} className={`${ghostButton} justify-self-center`}>
               Clear {done} checked item{done === 1 ? '' : 's'}

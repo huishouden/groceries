@@ -1,10 +1,13 @@
-import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { SuggestionChip } from '@huishouden/pwa-kit/react/ui';
 import type { ListItem, Staple } from '../data/model';
 
 interface Props {
   staples: Staple[];
   activeItems: ListItem[];
   onAdd: (staple: Staple) => void;
+  /** "Don't suggest": a long press on a chip, or Edit and its ×. */
+  onForget: (staple: Staple) => void;
   limit?: number;
   large?: boolean;
 }
@@ -18,24 +21,36 @@ export function topStaples(staples: Staple[], activeItems: ListItem[], limit: nu
     .slice(0, limit);
 }
 
-export function StaplesShelf({ staples, activeItems, onAdd, limit = 12, large }: Props) {
+export function StaplesShelf({ staples, activeItems, onAdd, onForget, limit = 12, large }: Props) {
+  const [editing, setEditing] = useState(false);
   const shown = topStaples(staples, activeItems, limit);
   if (shown.length === 0) return null;
   return (
     <section aria-label="Frequent items">
-      <h3 className="mb-2 text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400">Running low? Tap to add</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400">
+          {editing ? 'Tap × to stop suggesting' : 'Running low? Tap to add'}
+        </h3>
+        <button
+          type="button"
+          onClick={() => setEditing(!editing)}
+          aria-label={editing ? 'Done editing suggestions' : 'Edit suggestions'}
+          className="-mr-2 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-forest-700 hover:bg-forest-50 dark:text-forest-300 dark:hover:bg-forest-700"
+        >
+          {editing ? 'Done' : 'Edit'}
+        </button>
+      </div>
       <div className={`flex gap-2 ${large ? 'flex-wrap' : 'scrollbar-none overflow-x-auto pb-1'}`}>
         {shown.map((s) => (
-          <button
+          <SuggestionChip
             key={s.id}
-            onClick={() => onAdd(s)}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border border-forest-200 bg-forest-50 font-medium text-forest-700 hover:bg-forest-100 dark:border-forest-600 dark:bg-forest-800 dark:text-forest-100 ${
-              large ? 'px-4 py-2.5 text-lg' : 'px-3 py-1.5 text-sm'
-            }`}
-          >
-            <Plus size={large ? 18 : 14} strokeWidth={2.5} />
-            {s.displayName}
-          </button>
+            label={s.displayName}
+            large={large}
+            editing={editing}
+            hint="Adding it again brings it back."
+            onPick={() => onAdd(s)}
+            onRemove={() => onForget(s)}
+          />
         ))}
       </div>
     </section>

@@ -102,3 +102,16 @@ export function nearestStore(stores: StoreLayout[], here: GeoPoint, maxMeters = 
   }
   return best?.store ?? null;
 }
+
+/**
+ * What is left comes first: sections with something still to get, in the store's order, each with
+ * its checked items at the bottom; sections where everything is checked fold into one "In cart"
+ * group after them.
+ */
+export function leftFirst<G extends { items: ListItem[] }>(sections: G[]): { open: G[]; inCart: ListItem[] } {
+  const open = sections
+    .filter((g) => g.items.some((i) => !i.completed))
+    .map((g) => ({ ...g, items: [...g.items.filter((i) => !i.completed), ...g.items.filter((i) => i.completed)] }));
+  const inCart = sections.filter((g) => g.items.length > 0 && g.items.every((i) => i.completed)).flatMap((g) => g.items);
+  return { open, inCart };
+}

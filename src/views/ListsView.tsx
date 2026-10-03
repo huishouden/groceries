@@ -25,6 +25,8 @@ interface Props {
   onDeleteList: (list: ShoppingList) => void;
   onAdd: (req: AddRequest) => void;
   onAddStaple: (s: Staple) => void;
+  /** "Don't suggest": forgets the staple (with Undo). */
+  onForgetStaple: (s: Staple) => void;
   onToggle: (item: ListItem) => void;
   aisle?: AisleProps;
   onEdit: (item: ListItem) => void;
@@ -112,13 +114,15 @@ export function ListsView(props: Props) {
 
       <div className="min-w-0 flex-1 overflow-y-auto">
         <div className="scrollbar-none flex gap-2 overflow-x-auto border-b border-stone-200 px-4 py-2 md:hidden dark:border-forest-700">
-          {lists.map((l) => (
-            <Chip key={l.id} active={l.id === selectedList.id} onClick={() => props.onSelectList(l.id)}>
-              {l.name}
-              {pendingCount(l.id) > 0 ? ` · ${pendingCount(l.id)}` : ''}
-            </Chip>
-          ))}
-          {setUp && <Chip onClick={props.onNewList}>+ New</Chip>}
+          {/* One list needs no picker (its name is the heading below); New stays. */}
+          {lists.length > 1 &&
+            lists.map((l) => (
+              <Chip key={l.id} active={l.id === selectedList.id} onClick={() => props.onSelectList(l.id)}>
+                {l.name}
+                {pendingCount(l.id) > 0 ? ` · ${pendingCount(l.id)}` : ''}
+              </Chip>
+            ))}
+          {setUp && <Chip onClick={props.onNewList}>{lists.length > 1 ? '+ New' : '+ New list'}</Chip>}
           {setUp && lists.length > 1 && <Chip onClick={props.onReorderLists}>Reorder</Chip>}
           <a
             href={TASKS_PATH}
@@ -155,8 +159,8 @@ export function ListsView(props: Props) {
             )}
           </header>
 
-          <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} />
-          <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} />
+          <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} />
+          <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} onForget={props.onForgetStaple} />
 
           {(listItems.length > 6 || search) && (
             <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 dark:border-forest-700 dark:bg-forest-800">

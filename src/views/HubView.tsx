@@ -15,6 +15,8 @@ interface Props {
   onSelectList: (id: string) => void;
   onAdd: (req: AddRequest) => void;
   onAddStaple: (s: Staple) => void;
+  /** "Don't suggest": forgets the staple (with Undo). */
+  onForgetStaple: (s: Staple) => void;
   onToggle: (item: ListItem) => void;
   aisle?: AisleProps;
   onEdit: (item: ListItem) => void;
@@ -51,29 +53,31 @@ export function HubView(props: Props) {
           <p className="text-5xl font-light tabular-nums">{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
           <p className="text-lg text-stone-500">{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {lists.map((l) => {
-            const count = items.filter((i) => i.listId === l.id && !i.completed).length;
-            return (
-              <button
-                key={l.id}
-                onClick={() => props.onSelectList(l.id)}
-                className={`flex items-center gap-3 rounded-2xl border p-3 text-left ${
-                  l.id === selectedList.id ? 'border-forest-600 bg-forest-100 dark:bg-forest-700' : 'border-stone-200 bg-white dark:border-forest-700 dark:bg-forest-800'
-                }`}
-              >
-                <ListIconBadge icon={l.icon} color={l.color} />
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{l.name}</span>
-                  <span className="text-sm text-stone-500">{count === 0 ? 'Empty' : `${count} to get`}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} large placeholder={`Add to ${selectedList.name}…`} />
+        {lists.length > 1 && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {lists.map((l) => {
+              const count = items.filter((i) => i.listId === l.id && !i.completed).length;
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => props.onSelectList(l.id)}
+                  className={`flex items-center gap-3 rounded-2xl border p-3 text-left ${
+                    l.id === selectedList.id ? 'border-forest-600 bg-forest-100 dark:bg-forest-700' : 'border-stone-200 bg-white dark:border-forest-700 dark:bg-forest-800'
+                  }`}
+                >
+                  <ListIconBadge icon={l.icon} color={l.color} />
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{l.name}</span>
+                    <span className="text-sm text-stone-500">{count === 0 ? 'Empty' : `${count} to get`}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} large placeholder={`Add to ${selectedList.name}…`} />
         <div className="min-h-0 overflow-y-auto">
-          <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} limit={18} large />
+          <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} onForget={props.onForgetStaple} limit={18} large />
         </div>
       </section>
 

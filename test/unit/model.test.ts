@@ -9,6 +9,7 @@ import {
   formatListForSharing,
   groupByAisle,
   matchSuggestions,
+  shoppingStaples,
   moveInOrder,
   positionBetween,
   sortItems,
@@ -122,6 +123,24 @@ describe('topStaples', () => {
   it('shows an item again once it has been checked off', () => {
     const shown = topStaples([staple('Milk', 4)], [item({ name: 'Milk', completed: true })], 10);
     expect(shown.map((s) => s.displayName)).toEqual(['Milk']);
+  });
+});
+
+describe('shoppingStaples', () => {
+  const chore = (displayName: string, timesAdded: number): Staple => ({ ...staple(displayName, timesAdded), category: CATEGORIES.CHORES });
+
+  it('hides chores learned when Tasks and Groceries were one app, so the shelf never offers them', () => {
+    const staples = [staple('Eggs', 5), chore('Unload the dishwasher', 9), staple('Bring clothes to drycleaners before 6', 7)];
+    const taskItems = [item({ listId: 'chores', name: 'bring clothes to  drycleaners before 6', completed: true })];
+    const offered = shoppingStaples(staples, taskItems);
+    expect(offered.map((s) => s.displayName)).toEqual(['Eggs']);
+    expect(topStaples(offered, [], 10).map((s) => s.displayName)).toEqual(['Eggs']);
+    expect(matchSuggestions(offered, 'dry')).toEqual([]);
+  });
+
+  it('keeps everything when Tasks has nothing named like it', () => {
+    const staples = [staple('Eggs', 5), staple('Furnace filter', 2)];
+    expect(shoppingStaples(staples, [item({ listId: 'chores', name: 'Change the furnace filter' })])).toEqual(staples);
   });
 });
 

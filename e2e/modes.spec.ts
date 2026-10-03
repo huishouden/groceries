@@ -15,6 +15,9 @@ test('store mode walks aisles in store order and tracks progress', async ({ page
   ]);
   await page.getByRole('button', { name: 'Mark Bananas done' }).click();
   await expect(page.getByText('1 of 3 in cart')).toBeVisible();
+  // Its section is done: what is left comes first, the done section folds into In cart at the end.
+  await expect(page.locator('main h2, h2').filter({ hasText: /left/ })).toHaveText([/Dairy & Eggs/, /Frozen Foods/]);
+  await expect(page.getByRole('button', { name: 'In cart (1)' })).toBeVisible();
   await page.getByRole('button', { name: 'Clear 1 checked item' }).click();
   await expect(page.getByText('0 of 2 in cart')).toBeVisible();
 });
@@ -31,7 +34,7 @@ test('staples appear after an item is bought twice, keeping its first spelling',
   await page.getByRole('button', { name: 'Mark Whole milk done' }).click();
   await addItem(page, 'whole milk');
   await page.getByRole('button', { name: 'Mark Whole milk done' }).click();
-  await expect(page.locator('section[aria-label="Frequent items"] button')).toHaveText(['Whole milk']);
+  await expect(page.getByRole('region', { name: 'Frequent items' }).getByRole('button', { name: /^Add / })).toHaveText(['Whole milk']);
 
   await page.getByLabel('New item').fill('mi');
   await expect(page.locator('ul.absolute li')).toContainText(['Whole milk']);

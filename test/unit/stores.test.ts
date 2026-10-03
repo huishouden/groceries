@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AISLE_ORDER, CATEGORIES, URGENCY, type ListItem } from '../../src/data/model';
-import { distanceMeters, fullCategoryOrder, groupForStore, nearestStore, type StoreLayout } from '../../src/data/stores';
+import { distanceMeters, fullCategoryOrder, groupForStore, leftFirst, nearestStore, type StoreLayout } from '../../src/data/stores';
 
 function item(name: string, category: ListItem['category']): ListItem {
   return { id: name, listId: 'g', name, category, quantity: '1', notes: '', addedBy: '', completed: false, urgency: URGENCY.NORMAL, createdAt: 0, updatedAt: 0, completedAt: null };
@@ -30,6 +30,25 @@ describe('groupForStore', () => {
       [CATEGORIES.FROZEN, CATEGORIES.DAIRY_EGGS],
     );
     expect(groups.map(([c]) => c)).toEqual([CATEGORIES.FROZEN, CATEGORIES.DAIRY_EGGS, CATEGORIES.PRODUCE]);
+  });
+});
+
+describe('leftFirst', () => {
+  const done = (name: string, category: ListItem['category']): ListItem => ({ ...item(name, category), completed: true });
+
+  it('puts what is left first: open sections in order with checked items last, done sections folded into In cart', () => {
+    const { open, inCart } = leftFirst([
+      { key: 'produce', items: [done('Apples', CATEGORIES.PRODUCE), done('Kale', CATEGORIES.PRODUCE)] },
+      { key: 'dairy', items: [done('Milk', CATEGORIES.DAIRY_EGGS), item('Eggs', CATEGORIES.DAIRY_EGGS), done('Butter', CATEGORIES.DAIRY_EGGS)] },
+      { key: 'frozen', items: [done('Peas', CATEGORIES.FROZEN)] },
+    ]);
+    expect(open.map((g) => [g.key, g.items.map((i) => i.name)])).toEqual([['dairy', ['Eggs', 'Milk', 'Butter']]]);
+    expect(inCart.map((i) => i.name)).toEqual(['Apples', 'Kale', 'Peas']);
+  });
+
+  it('leaves an untouched list as it is', () => {
+    const sections = [{ key: 'produce', items: [item('Apples', CATEGORIES.PRODUCE)] }];
+    expect(leftFirst(sections)).toEqual({ open: sections, inCart: [] });
   });
 });
 
