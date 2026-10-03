@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/huishouden/groceries/compare/v1.1.0...v1.2.0) (2026-10-03)
+
+
+### Features
+
+* publish what is left to buy as one line on the household to-do list ([#5](https://github.com/huishouden/groceries/issues/5)) ([d3c7914](https://github.com/huishouden/groceries/commit/d3c791474f49cff1a6a9631c1faded476ed44907))
+
 ## [1.1.0](https://github.com/huishouden/groceries/compare/v1.0.0...v1.1.0) (2026-10-03)
 
 
