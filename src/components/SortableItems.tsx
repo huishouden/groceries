@@ -56,7 +56,7 @@ function SortableRow({ item, renderItem }: { item: ListItem; renderItem: Props['
       {...attributes}
       {...listeners}
       aria-label={`Move ${item.name}`}
-      className="-ml-1 shrink-0 cursor-grab touch-none rounded-lg p-1 text-stone-300 hover:text-stone-500 active:cursor-grabbing dark:text-forest-500"
+      className="-ml-1 shrink-0 cursor-grab touch-none rounded-lg p-1 text-stone-300 hover:text-stone-500 active:cursor-grabbing dark:text-forest-500 dark:hover:text-forest-300"
     >
       <GripVertical size={20} />
     </button>

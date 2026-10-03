@@ -82,7 +82,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
           e.preventDefault();
           submit();
         }}
-        className={`flex items-center gap-2 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-sm focus-within:border-forest-500 dark:border-forest-600 dark:bg-forest-800 ${large ? 'p-2' : ''}`}
+        className={`flex items-center gap-2 rounded-2xl border border-line bg-surface p-1.5 shadow-sm focus-within:border-forest-500 ${large ? 'p-2' : ''}`}
       >
         <input
           ref={inputRef}
@@ -101,7 +101,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
         <button
           type="button"
           onClick={() => setShowDetails((v) => !v)}
-          className={`rounded-xl p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-forest-700 ${showDetails ? 'bg-stone-100 dark:bg-forest-700' : ''}`}
+          className={`rounded-xl p-2 text-muted hover:bg-stone-100 dark:hover:bg-forest-700 ${showDetails ? 'bg-stone-100 dark:bg-forest-700' : ''}`}
           aria-label="More details"
           aria-expanded={showDetails}
         >
@@ -110,27 +110,27 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
         <button
           type="submit"
           disabled={!name.trim()}
-          className={`inline-flex items-center gap-1.5 rounded-xl bg-forest-700 font-semibold text-white disabled:opacity-40 dark:bg-forest-400 dark:text-forest-900 ${large ? 'px-6 py-3 text-lg' : 'px-4 py-2'}`}
+          className={`inline-flex items-center gap-1.5 rounded-xl bg-primary font-semibold text-on-primary disabled:opacity-40 ${large ? 'px-6 py-3 text-lg' : 'px-4 py-2'}`}
         >
           <Plus size={large ? 22 : 18} strokeWidth={2.5} /> Add
         </button>
       </form>
 
       {focused && suggestions.length > 0 && (
-        <ul className="absolute right-0 left-0 z-20 mt-1 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg dark:border-forest-600 dark:bg-forest-800">
+        <ul className="absolute right-0 left-0 z-20 mt-1 overflow-hidden rounded-2xl border border-line bg-surface shadow-lg">
           {suggestions.map((s) => (
             <li key={s.id} className="flex items-center">
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => submit(s)}
-                className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 py-2.5 pl-4 text-left hover:bg-forest-50 dark:hover:bg-forest-700"
+                className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 py-2.5 pl-4 text-left hover:bg-tint"
               >
                 <span className="min-w-0 truncate">
                   <span className="font-medium">{s.displayName}</span>
-                  <span className="ml-2 text-sm text-stone-500">{s.category}</span>
+                  <span className="ml-2 text-sm text-muted">{s.category}</span>
                 </span>
-                {s.timesAdded > 0 && <span className="shrink-0 text-sm text-stone-400">added {s.timesAdded}×</span>}
+                {s.timesAdded > 0 && <span className="shrink-0 text-sm text-muted">added {s.timesAdded}×</span>}
               </button>
               {/* Keeps the field focused, so the list stays open for the next one. */}
               <button
@@ -148,16 +148,16 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
       )}
 
       {showDetails && (
-        <div className="mt-2 grid gap-2 rounded-2xl border border-stone-200 bg-white p-3 sm:grid-cols-2 dark:border-forest-600 dark:bg-forest-800">
-          <label className="text-sm text-stone-500">
+        <div className="mt-2 grid gap-2 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-2">
+          <label className="text-sm text-muted">
             Quantity
             <input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1, 2 lbs, a dozen" className={`${inputClass} mt-1`} />
           </label>
-          <label className="text-sm text-stone-500">
+          <label className="text-sm text-muted">
             Notes
             <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Brand, size, organic…" className={`${inputClass} mt-1`} />
           </label>
-          <label className="text-sm text-stone-500">
+          <label className="text-sm text-muted">
             Section
             <select value={effectiveCategory} onChange={(e) => setCategory(e.target.value as Category)} className={`${inputClass} mt-1`}>
               {ALL_CATEGORIES.map((c) => (
@@ -165,7 +165,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
               ))}
             </select>
           </label>
-          <div className="text-sm text-stone-500">
+          <div className="text-sm text-muted">
             When
             <div className="mt-1 flex gap-1.5">
               {ALL_URGENCIES.map((u) => (
@@ -176,9 +176,9 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
                   className={`flex-1 rounded-xl border px-2 py-2.5 text-sm ${
                     urgency === u
                       ? u === URGENCY.URGENT
-                        ? 'border-terracotta bg-terracotta-light font-semibold text-terracotta'
-                        : 'border-forest-600 bg-forest-50 font-semibold text-forest-700 dark:bg-forest-700 dark:text-forest-100'
-                      : 'border-stone-200 dark:border-forest-600'
+                        ? 'border-terracotta bg-attention-tint font-semibold text-attention'
+                        : 'border-forest-600 bg-tint font-semibold text-forest-700 dark:text-forest-100'
+                      : 'border-line'
                   }`}
                 >
                   {u === URGENCY.URGENT && <Zap size={12} className="mr-0.5 inline" />}

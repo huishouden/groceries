@@ -95,7 +95,7 @@ function useStickySections(listRef: RefObject<HTMLDivElement | null>, headRef: R
 
 /** The sticky section heading's look (the In cart group's too). */
 const sectionHeading =
-  'sticky top-(--section-top) z-[5] -mx-4 mb-1 border-b border-transparent bg-cream px-4 py-1.5 text-sm font-semibold tracking-wider text-stone-500 uppercase sm:-mx-6 sm:px-6 data-stuck:border-stone-200 dark:bg-forest-900 dark:data-stuck:border-forest-700';
+  'sticky top-(--section-top) z-[5] -mx-4 mb-1 border-b border-transparent bg-page px-4 py-1.5 text-sm font-semibold tracking-wider text-muted uppercase sm:-mx-6 sm:px-6 data-stuck:border-stone-200 dark:data-stuck:border-forest-700';
 
 function cleanLabels(labels: Partial<Record<Category, string>>): Partial<Record<Category, string>> {
   return Object.fromEntries(Object.entries(labels).flatMap(([k, v]) => (v?.trim() ? [[k, v.trim()]] : [])));
@@ -140,9 +140,9 @@ export function StoreView(props: Props) {
         </div>
       )}
 
-      <section aria-label="Store" className="grid gap-2 rounded-2xl border border-stone-200 bg-white p-3 dark:border-forest-700 dark:bg-forest-800">
+      <section aria-label="Store" className="grid gap-2 rounded-2xl border border-stone-200 bg-surface p-3 dark:border-forest-700">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-stone-500">Shopping at</span>
+          <span className="text-sm text-muted">Shopping at</span>
           <Chip active={!store} onClick={() => choose(null)}>
             Typical store
           </Chip>
@@ -198,10 +198,10 @@ export function StoreView(props: Props) {
         />
       ) : (
         <div ref={listRef} className="contents">
-          <div ref={headRef} className="sticky top-0 z-10 -mx-4 bg-cream px-4 py-2 sm:-mx-6 sm:px-6 dark:bg-forest-900">
+          <div ref={headRef} className="sticky top-0 z-10 -mx-4 bg-page px-4 py-2 sm:-mx-6 sm:px-6">
             <div className="flex items-baseline justify-between">
               <h1 className="text-2xl font-bold">{selectedList.name}</h1>
-              <span className="text-stone-500">
+              <span className="text-muted">
                 {done} of {total} in cart
               </span>
             </div>
@@ -209,14 +209,14 @@ export function StoreView(props: Props) {
               <div className="h-full rounded-full bg-forest-500 transition-all" style={{ width: `${progress * 100}%` }} />
             </div>
           </div>
-          {total === 0 && <p className="p-8 text-center text-stone-500">This list is empty.</p>}
+          {total === 0 && <p className="p-8 text-center text-muted">This list is empty.</p>}
           {sections.map((group) => (
             <section key={group.key} aria-label={group.title}>
               {/* Stays under the list's heading while its items scroll by, so you know which section they are in. */}
               <h2 className={sectionHeading}>
                 {group.title}
                 {group.label && (
-                  <span className="ml-1.5 rounded-md bg-forest-100 px-1.5 py-0.5 tracking-normal text-forest-700 normal-case dark:bg-forest-700 dark:text-forest-100">
+                  <span className="ml-1.5 rounded-md bg-tint-strong px-1.5 py-0.5 tracking-normal text-forest-700 normal-case dark:text-forest-100">
                     {group.label}
                   </span>
                 )}
@@ -288,7 +288,7 @@ function LayoutEditor({
     <section aria-label={`${store.name} layout`} className="grid gap-3">
       <div>
         <h1 className="text-xl font-bold">{store.name} layout</h1>
-        <p className="text-sm text-stone-500">Drag sections into the order you walk this store. Aisle labels are optional.</p>
+        <p className="text-sm text-muted">Drag sections into the order you walk this store. Aisle labels are optional.</p>
       </div>
       <SortableRows
         ids={order}
@@ -314,7 +314,7 @@ function LayoutEditor({
       <div className="grid gap-2 rounded-2xl border border-stone-200 p-3 dark:border-forest-700">
         {store.location ? (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-stone-600 dark:text-stone-300">
+            <span className="text-sm text-muted">
               <MapPin size={14} className="mr-1 inline" /> Location saved. Store mode picks {store.name} when you're there.
             </span>
             <button onClick={() => onUpdate({ location: null })} className={`${ghostButton} text-sm`}>

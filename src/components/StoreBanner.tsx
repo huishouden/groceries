@@ -88,7 +88,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
             setSnoozed({ ...snoozed, [`store:${activeStore.id}`]: Date.now() + DONE_SHOPPING_SNOOZE_MS });
             onEnd();
           }}
-          className="shrink-0 rounded-lg px-2 py-1 font-medium hover:bg-forest-100 dark:hover:bg-forest-700"
+          className="shrink-0 rounded-lg px-2 py-1 font-medium hover:bg-tint-strong"
         >
           Done shopping
         </button>
@@ -99,8 +99,8 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
   if (candidate && onCreateFromPlace) {
     const label = placeLabel(candidate);
     return (
-      <div role="region" aria-label="Detected store" className={`${line} border border-forest-200 bg-white dark:border-forest-600 dark:bg-forest-800`}>
-        <MapPin size={16} className="shrink-0 text-forest-600" />
+      <div role="region" aria-label="Detected store" className={`${line} border border-forest-200 bg-surface dark:border-forest-600`}>
+        <MapPin size={16} className="shrink-0 text-positive" />
         <span className="min-w-0 flex-1">
           At <strong>{label}</strong>?
         </span>
@@ -109,7 +109,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
             onCreateFromPlace(candidate);
             setCandidate(null);
           }}
-          className="shrink-0 rounded-lg bg-forest-700 px-3 py-1 font-semibold text-white dark:bg-forest-400 dark:text-forest-900"
+          className="shrink-0 rounded-lg bg-primary px-3 py-1 font-semibold text-on-primary"
         >
           Yes
         </button>
@@ -118,7 +118,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
             setSnoozed({ ...snoozed, [candidate.osmId]: Date.now() + SNOOZE_MS });
             setCandidate(null);
           }}
-          className="shrink-0 rounded-lg px-2 py-1 text-stone-500 hover:bg-stone-100 dark:hover:bg-forest-700"
+          className="shrink-0 rounded-lg px-2 py-1 text-muted hover:bg-stone-100 dark:hover:bg-forest-700"
           aria-label={`Not at ${label}`}
         >
           <X size={16} />
@@ -129,7 +129,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
 
   if (permission === 'prompt') {
     return (
-      <button onClick={() => void detect()} disabled={looking} className="inline-flex items-center gap-1.5 self-start text-sm text-stone-500 hover:text-forest-700">
+      <button onClick={() => void detect()} disabled={looking} className="inline-flex items-center gap-1.5 self-start text-sm text-muted hover:text-link">
         <LocateFixed size={14} className={looking ? 'animate-pulse' : ''} /> {looking ? 'Looking…' : 'At a store? Detect it to learn aisles'}
       </button>
     );

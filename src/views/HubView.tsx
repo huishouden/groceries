@@ -51,7 +51,7 @@ export function HubView(props: Props) {
       <section className="flex min-h-0 flex-col gap-5">
         <div>
           <p className="text-5xl font-light tabular-nums">{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
-          <p className="text-lg text-stone-500">{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+          <p className="text-lg text-muted">{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
         {lists.length > 1 && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -62,13 +62,13 @@ export function HubView(props: Props) {
                   key={l.id}
                   onClick={() => props.onSelectList(l.id)}
                   className={`flex items-center gap-3 rounded-2xl border p-3 text-left ${
-                    l.id === selectedList.id ? 'border-forest-600 bg-forest-100 dark:bg-forest-700' : 'border-stone-200 bg-white dark:border-forest-700 dark:bg-forest-800'
+                    l.id === selectedList.id ? 'border-forest-600 bg-tint-strong' : 'border-stone-200 bg-surface dark:border-forest-700'
                   }`}
                 >
                   <ListIconBadge icon={l.icon} color={l.color} />
                   <span className="min-w-0">
                     <span className="block truncate font-semibold">{l.name}</span>
-                    <span className="text-sm text-stone-500">{count === 0 ? 'Empty' : `${count} to get`}</span>
+                    <span className="text-sm text-muted">{count === 0 ? 'Empty' : `${count} to get`}</span>
                   </span>
                 </button>
               );
@@ -84,7 +84,7 @@ export function HubView(props: Props) {
       <section className="flex min-h-0 flex-col rounded-3xl bg-white/70 p-4 dark:bg-forest-800/60">
         <h2 className="mb-3 text-2xl font-bold">
           {selectedList.name}
-          <span className="ml-2 text-lg font-normal text-stone-500">{pending.length === 0 ? 'all caught up' : `${pending.length} to get`}</span>
+          <span className="ml-2 text-lg font-normal text-muted">{pending.length === 0 ? 'all caught up' : `${pending.length} to get`}</span>
         </h2>
         <div className="grid min-h-0 content-start gap-2 overflow-y-auto">
           <SortableItems
@@ -103,7 +103,7 @@ export function HubView(props: Props) {
           )}
         </div>
         {pending.length === 0 && recentlyDone.length === 0 && (
-          <p className="m-auto max-w-sm text-center text-lg text-stone-500">Notice something running low? Add it on the left and it shows up on everyone's phone.</p>
+          <p className="m-auto max-w-sm text-center text-lg text-muted">Notice something running low? Add it on the left and it shows up on everyone's phone.</p>
         )}
       </section>
     </div>

@@ -28,7 +28,7 @@ export { Chip, Dialog, ghostButton, inputClass, primaryButton } from '@huishoude
 
 /** A small label beside an item, as a menu prints "Vegetarian" or a spice rating: quiet stone text. */
 export function Badge({ children, tone = 'stone', label }: { children: ReactNode; tone?: 'stone' | 'forest'; label?: string }) {
-  const colour = tone === 'forest' ? 'border-forest-200 text-forest-700 dark:text-forest-300' : 'border-stone-200 text-stone-600 dark:text-stone-300';
+  const colour = tone === 'forest' ? 'border-forest-200 text-link' : 'border-line text-muted';
   return (
     <li className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs dark:border-forest-600 ${colour}`} aria-label={label}>
       {children}

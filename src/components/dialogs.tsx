@@ -3,7 +3,7 @@ import { RoleNote, RoleSelect } from '@huishouden/pwa-kit/react/roles';
 import { useState } from 'react';
 import { Download, Search, Send, Trash2, UserPlus, Zap } from 'lucide-react';
 import { ALL_CATEGORIES, URGENCY, LIST_COLORS, SHOPPING_ICONS, moveInOrder, type Category, type Household, type ListIcon, type ListItem, type ShoppingList, type Urgency } from '../data/model';
-import type { ThemeMode } from '../lib/prefs';
+import { THEME_LABELS, THEME_MODES, useTheme } from '@huishouden/pwa-kit/react/theme';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { ErrorNotice } from './ErrorNotice';
 import { Dialog, ListIconBadge, ghostButton, inputClass, primaryButton } from './ui';
@@ -16,7 +16,7 @@ function FindAtStores({ storeNames, itemName }: { storeNames: string[]; itemName
   if (links.length === 0) return null;
   return (
     <div className="grid gap-1.5" role="group" aria-label="Find it at a store">
-      <span className="text-sm text-stone-500">Find it at</span>
+      <span className="text-sm text-muted">Find it at</span>
       <div className="flex flex-wrap gap-2">
         {links.map((l) => (
           <a
@@ -25,7 +25,7 @@ function FindAtStores({ storeNames, itemName }: { storeNames: string[]; itemName
             target="_blank"
             rel="noreferrer"
             aria-label={l.storeSite ? `Find ${itemName.trim()} at ${l.store}` : `Search the web for ${itemName.trim()} at ${l.store}`}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-stone-200 px-3 text-sm text-forest-700 hover:border-forest-500 dark:border-forest-600 dark:text-forest-300"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-3 text-sm text-link hover:border-forest-500"
           >
             <Search size={14} /> {l.store}
           </a>
@@ -58,7 +58,7 @@ export function EditItemDialog({
   const [category, setCategory] = useState<Category>(item.category);
   const [urgency, setUrgency] = useState<Urgency>(item.urgency);
   const [listId, setListId] = useState(item.listId);
-  const quick = 'inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-3 py-1.5 text-sm text-stone-700 hover:border-forest-500 dark:border-forest-600 dark:text-stone-200';
+  const quick = 'inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-soft hover:border-forest-500';
   const urgent = urgency === URGENCY.URGENT;
 
   return (
@@ -72,16 +72,16 @@ export function EditItemDialog({
           onClose();
         }}
       >
-        <label className="text-sm text-stone-500">
+        <label className="text-sm text-muted">
           Item
           <input value={name} onChange={(e) => setName(e.target.value)} className={`${inputClass} mt-1`} autoFocus />
         </label>
         <div className="grid grid-cols-2 gap-3">
-          <label className="text-sm text-stone-500">
+          <label className="text-sm text-muted">
             Quantity
             <input value={quantity} onChange={(e) => setQuantity(e.target.value)} className={`${inputClass} mt-1`} />
           </label>
-          <label className="text-sm text-stone-500">
+          <label className="text-sm text-muted">
             Section
             <select value={category} onChange={(e) => setCategory(e.target.value as Category)} className={`${inputClass} mt-1`}>
               {(ALL_CATEGORIES.includes(category) ? ALL_CATEGORIES : [category, ...ALL_CATEGORIES]).map((c) => (
@@ -90,7 +90,7 @@ export function EditItemDialog({
             </select>
           </label>
         </div>
-        <label className="text-sm text-stone-500">
+        <label className="text-sm text-muted">
           Notes
           <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Brand, size, organic…" className={`${inputClass} mt-1`} />
         </label>
@@ -100,13 +100,13 @@ export function EditItemDialog({
             type="button"
             onClick={() => setUrgency(urgent ? URGENCY.NORMAL : URGENCY.URGENT)}
             aria-pressed={urgent}
-            className={`${quick} ${urgent ? 'border-terracotta bg-terracotta-light font-semibold text-terracotta' : ''}`}
+            className={`${quick} ${urgent ? 'border-terracotta bg-attention-tint font-semibold text-attention' : ''}`}
           >
             <Zap size={16} /> Need today
           </button>
         </div>
         {lists.length > 1 && (
-          <label className="text-sm text-stone-500">
+          <label className="text-sm text-muted">
             List
             <select value={listId} onChange={(e) => setListId(e.target.value)} className={`${inputClass} mt-1`}>
               {lists.map((l) => (
@@ -117,7 +117,7 @@ export function EditItemDialog({
             </select>
           </label>
         )}
-        <p className="text-sm text-stone-500">Added by {item.addedBy || 'someone'}</p>
+        <p className="text-sm text-muted">Added by {item.addedBy || 'someone'}</p>
         <div className="mt-2 flex justify-between gap-2">
           <button
             type="button"
@@ -155,7 +155,7 @@ export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, 
       >
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Target, Home Depot, Farmers market…" className={inputClass} autoFocus />
         <div>
-          <p className="mb-2 text-sm text-stone-500">Icon</p>
+          <p className="mb-2 text-sm text-muted">Icon</p>
           <div className="flex flex-wrap gap-2">
             {SHOPPING_ICONS.map((i) => (
               <button
@@ -172,7 +172,7 @@ export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, 
           </div>
         </div>
         <div>
-          <p className="mb-2 text-sm text-stone-500">Color</p>
+          <p className="mb-2 text-sm text-muted">Color</p>
           <div className="flex flex-wrap gap-2">
             {LIST_COLORS.map((c) => (
               <button
@@ -219,8 +219,6 @@ export function SettingsDialog({
   myEmail,
   addedAs,
   setAddedAs,
-  theme,
-  setTheme,
   install,
   googleTasks,
   onAddMember,
@@ -232,8 +230,6 @@ export function SettingsDialog({
   myEmail: string;
   addedAs: string;
   setAddedAs: (name: string) => void;
-  theme: ThemeMode;
-  setTheme: (t: ThemeMode) => void;
   install: { canInstall: boolean; installed: boolean; install: () => Promise<void> };
   /** Google Tasks into lists (GoogleTasksSettings). */
   googleTasks?: React.ReactNode;
@@ -242,6 +238,7 @@ export function SettingsDialog({
   onSetRole: (email: string, role: Role) => Promise<void>;
   onClose: () => void;
 }) {
+  const { mode, setMode } = useTheme();
   const [invite, setInvite] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('member');
   const myRole = householdRole(household, myEmail);
@@ -253,7 +250,7 @@ export function SettingsDialog({
       <div className="grid gap-6">
         <section>
           <h3 className="mb-1 font-semibold">{household.name}</h3>
-          <p className="mb-3 text-sm text-stone-500">
+          <p className="mb-3 text-sm text-muted">
             What each person can do depends on their role, in every Huishouden app. Add someone by the Google address they sign in
             with, then send them the link.
           </p>
@@ -261,16 +258,16 @@ export function SettingsDialog({
             {household.members.map((m) => {
               const joined = m === myEmail || (household.joined ?? []).includes(m);
               return (
-                <li key={m} className="flex items-center gap-2 rounded-xl bg-stone-50 px-3 py-2 dark:bg-forest-900">
+                <li key={m} className="flex items-center gap-2 rounded-xl bg-sunken px-3 py-2">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">
                       {m}
-                      {m === myEmail && <span className="ml-1 text-stone-400">(you)</span>}
+                      {m === myEmail && <span className="ml-1 text-muted">(you)</span>}
                     </span>
-                    <span className={`text-xs ${joined ? 'text-forest-600 dark:text-forest-300' : 'text-terracotta'}`}>
+                    <span className={`text-xs ${joined ? 'text-positive' : 'text-attention'}`}>
                       {joined ? 'Joined' : 'Invited, not signed in yet'}
                     </span>
-                    {!(admin && m !== myEmail) && <span className="text-xs text-stone-500"> · {ROLE_LABELS[householdRole(household, m) ?? 'member']}</span>}
+                    {!(admin && m !== myEmail) && <span className="text-xs text-muted"> · {ROLE_LABELS[householdRole(household, m) ?? 'member']}</span>}
                   </span>
                   {admin && m !== myEmail && (
                     <RoleSelect
@@ -289,7 +286,7 @@ export function SettingsDialog({
                       onClick={() => {
                         if (confirm(`Remove ${m} from the household?`)) void onRemoveMember(m).catch((err: unknown) => setError(friendlyError(err, 'save')));
                       }}
-                      className="rounded-lg p-1.5 text-stone-400 hover:text-red-600"
+                      className="rounded-lg p-1.5 text-stone-400 hover:text-red-600 dark:hover:text-red-300"
                       aria-label={`Remove ${m}`}
                     >
                       <Trash2 size={16} />
@@ -335,21 +332,23 @@ export function SettingsDialog({
             Items added on this device are labelled
             <input value={addedAs} onChange={(e) => setAddedAs(e.target.value)} className={`${inputClass} mt-1 font-normal`} />
           </label>
-          <p className="mt-1 text-sm text-stone-500">Use "Kitchen" on the shared tablet so you can tell who added what.</p>
+          <p className="mt-1 text-sm text-muted">Use "Kitchen" on the shared tablet so you can tell who added what.</p>
         </section>
 
         {googleTasks}
 
         <section>
-          <p className="mb-2 text-sm font-semibold">Appearance on this device</p>
-          <div className="flex gap-2">
-            {(['light', 'dark', 'auto'] as ThemeMode[]).map((t) => (
+          <p id="theme-label" className="mb-2 text-sm font-semibold">Theme</p>
+          <p className="mb-2 text-sm text-muted">For every Huishouden app on this device. Automatic follows the device.</p>
+          <div className="flex gap-2" role="group" aria-labelledby="theme-label">
+            {THEME_MODES.map((t) => (
               <button
                 key={t}
-                onClick={() => setTheme(t)}
-                className={`flex-1 rounded-xl border px-3 py-2 capitalize ${theme === t ? 'border-forest-600 bg-forest-50 font-semibold dark:bg-forest-700' : 'border-stone-200 dark:border-forest-600'}`}
+                onClick={() => setMode(t)}
+                aria-pressed={mode === t}
+                className={`flex-1 rounded-xl border px-3 py-2 ${mode === t ? 'border-forest-600 bg-forest-50 font-semibold dark:bg-forest-700' : 'border-stone-200 dark:border-forest-600'}`}
               >
-                {t}
+                {THEME_LABELS[t]}
               </button>
             ))}
           </div>
@@ -363,7 +362,7 @@ export function SettingsDialog({
                 <Download size={18} /> Install Groceries on this device
               </button>
             ) : (
-              <p className="text-sm text-stone-500">In Chrome, open the ⋮ menu and choose "Add to Home screen" or "Install app". On iPhone, use Share, then "Add to Home Screen".</p>
+              <p className="text-sm text-muted">In Chrome, open the ⋮ menu and choose "Add to Home screen" or "Install app". On iPhone, use Share, then "Add to Home Screen".</p>
             )}
           </section>
         )}
@@ -377,7 +376,7 @@ export function ReorderListsDialog({ lists, onReorder, onClose }: { lists: Shopp
   const ids = lists.map((l) => l.id);
   return (
     <Dialog title="Reorder lists" onClose={onClose}>
-      <p className="mb-3 text-sm text-stone-500">Drag by the grip. Everyone in the household sees the new order.</p>
+      <p className="mb-3 text-sm text-muted">Drag by the grip. Everyone in the household sees the new order.</p>
       <SortableRows
         ids={ids}
         label={(id) => lists.find((l) => l.id === id)?.name ?? id}

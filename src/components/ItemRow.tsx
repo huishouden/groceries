@@ -80,13 +80,13 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
           <span className={`${large ? 'text-xl' : 'text-base'} ${item.completed ? 'line-through' : ''}`}>
             <span className="font-medium [overflow-wrap:anywhere]">{item.name}</span>
             {urgent && (
-              <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-terracotta-light px-2 py-0.5 align-middle text-xs font-semibold text-terracotta">
+              <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-attention-tint px-2 py-0.5 align-middle text-xs font-semibold text-attention">
                 <Zap size={12} /> Today
               </span>
             )}
           </span>
           {(details.length > 0 || item.addedBy) && (
-            <span className={`block text-stone-500 [overflow-wrap:anywhere] dark:text-stone-400 ${large ? 'text-base' : 'text-sm'}`}>
+            <span className={`block text-muted [overflow-wrap:anywhere] ${large ? 'text-base' : 'text-sm'}`}>
               {details.join(' · ')}
               {details.length > 0 && item.addedBy ? ' · ' : ''}
               {item.addedBy}
@@ -113,7 +113,7 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
             {aisle && onAisle && !showAisleInput && (
               <button
                 onClick={() => setEditingAisle(true)}
-                className={`inline-flex items-center gap-1 rounded-full bg-forest-50 px-2 py-0.5 font-medium text-forest-700 dark:bg-forest-700 dark:text-forest-100 ${large ? 'text-base' : 'text-sm'}`}
+                className={`inline-flex items-center gap-1 rounded-full bg-tint px-2 py-0.5 font-medium text-forest-700 dark:text-forest-100 ${large ? 'text-base' : 'text-sm'}`}
                 aria-label={`${aisleLabel(aisle)}. Change where ${item.name} is`}
               >
                 <Signpost size={14} /> {aisleLabel(aisle)}
@@ -124,12 +124,12 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
         )}
       </div>
       {onEdit && (
-        <button onClick={onEdit} className="hidden shrink-0 rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700 sm:block dark:hover:bg-forest-700" aria-label={`Edit ${item.name}`}>
+        <button onClick={onEdit} className="hidden shrink-0 rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700 sm:block dark:hover:bg-forest-700 dark:hover:text-stone-200" aria-label={`Edit ${item.name}`}>
           <Pencil size={18} />
         </button>
       )}
       {onDelete && (
-        <button onClick={onDelete} className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950" aria-label={`Delete ${item.name}`}>
+        <button onClick={onDelete} className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-300" aria-label={`Delete ${item.name}`}>
           <Trash2 size={18} />
         </button>
       )}
@@ -146,7 +146,7 @@ export function FindAtLink({ link, itemName, secondary, large }: { link: StoreLi
       rel="noreferrer"
       aria-label={link.storeSite ? `Find ${itemName} at ${link.store}` : `Search the web for ${itemName} at ${link.store}`}
       className={`inline-flex max-w-full min-w-0 items-center gap-1 underline-offset-2 hover:underline ${large ? 'text-base' : 'text-sm'} ${
-        secondary ? 'text-stone-500 dark:text-stone-400' : 'font-medium text-forest-700 dark:text-forest-300'
+        secondary ? 'text-muted' : 'font-medium text-link'
       }`}
     >
       <Search size={14} className="shrink-0" /> <span className="truncate">Find at {link.store}</span>
@@ -164,7 +164,7 @@ function AisleInput({ itemName, initial, correcting, onSave, onCancel }: { itemN
         onSave(value);
       }}
     >
-      <Signpost size={14} className="shrink-0 text-forest-600" />
+      <Signpost size={14} className="shrink-0 text-positive" />
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -173,12 +173,12 @@ function AisleInput({ itemName, initial, correcting, onSave, onCancel }: { itemN
         inputMode="text"
         enterKeyHint="done"
         maxLength={24}
-        className="w-28 min-w-0 rounded-xl border border-stone-200 bg-white px-2 py-1 text-sm outline-none focus:border-forest-500 dark:border-forest-600 dark:bg-forest-900"
+        className="w-28 min-w-0 rounded-xl border border-line bg-white px-2 py-1 text-sm outline-none focus:border-forest-500 dark:bg-forest-900"
       />
-      <button type="submit" disabled={!value.trim() && !correcting} className="rounded-xl bg-forest-700 px-2 py-1 text-sm font-medium text-white disabled:opacity-40 dark:bg-forest-400 dark:text-forest-900">
+      <button type="submit" disabled={!value.trim() && !correcting} className="rounded-xl bg-primary px-2 py-1 text-sm font-medium text-on-primary disabled:opacity-40">
         Save
       </button>
-      <button type="button" onClick={onCancel} className="rounded-xl px-1.5 py-1 text-sm text-stone-400 hover:text-stone-600">
+      <button type="button" onClick={onCancel} className="rounded-xl px-1.5 py-1 text-sm text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
         Cancel
       </button>
     </form>

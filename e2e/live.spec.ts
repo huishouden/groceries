@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectBottomNav, expectCleanLoad, expectCompactSampleBanner, expectGoogleSignInPopup, expectHuishoudenFrame, expectInstallable, expectSecurityHeaders } from '@huishouden/pwa-kit/e2e';
+import { expectBottomNav, expectCleanLoad, expectCompactSampleBanner, expectGoogleSignInPopup, expectHuishoudenFrame, expectInstallable, expectSecurityHeaders, expectThemeConsistent } from '@huishouden/pwa-kit/e2e';
 
 // Smoke tests of the deployed site (the kit runs them after every deploy with BASE_URL set).
 // Read-only: they stop at Google's account picker and never sign in or write data.
@@ -22,6 +22,8 @@ test('Google sign-in is reachable for this domain', async ({ page, context }) =>
 test('opens in the Huishouden frame', async ({ page }) => {
   await expectHuishoudenFrame(page, { app: 'Groceries', portalUrl: '/', path: './' });
 });
+
+test('follows the suite theme: dark on a dark device, readable', ({ page }) => expectThemeConsistent(page, { path: './' }));
 
 test('a shared link shows a preview', async ({ page, request }) => {
   await page.goto('./');

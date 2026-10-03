@@ -25,26 +25,6 @@ export function usePref<T>(key: string, initial: T): [T, (value: T) => void] {
   return [value, setValue];
 }
 
-export type ThemeMode = 'light' | 'dark' | 'auto';
-
-/** Applies the device's theme choice (a `.dark` class on <html>) and says whether it is dark now. */
-export function useApplyTheme(mode: ThemeMode): boolean {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = () => {
-      const isDark = mode === 'dark' || (mode === 'auto' && media.matches);
-      document.documentElement.classList.toggle('dark', isDark);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#081c15' : '#1b4332');
-      setDark(isDark);
-    };
-    apply();
-    media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
-  }, [mode]);
-  return dark;
-}
-
 /** Keeps the screen on while the kitchen hub is showing. */
 export function useWakeLock(enabled: boolean): void {
   useEffect(() => {

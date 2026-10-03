@@ -28,14 +28,14 @@ export function StaplesShelf({ staples, activeItems, onAdd, onForget, limit = 12
   return (
     <section aria-label="Frequent items">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold tracking-wider text-stone-500 uppercase dark:text-stone-400">
+        <h3 className="text-xs font-semibold tracking-wider text-muted uppercase">
           {editing ? 'Tap × to stop suggesting' : 'Running low? Tap to add'}
         </h3>
         <button
           type="button"
           onClick={() => setEditing(!editing)}
           aria-label={editing ? 'Done editing suggestions' : 'Edit suggestions'}
-          className="-mr-2 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-forest-700 hover:bg-forest-50 dark:text-forest-300 dark:hover:bg-forest-700"
+          className="-mr-2 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-link hover:bg-tint"
         >
           {editing ? 'Done' : 'Edit'}
         </button>
