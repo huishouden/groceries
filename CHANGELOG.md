@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/huishouden/groceries/compare/v1.2.0...v1.2.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* remove a suggestion, no chores on the shelf, Store mode shows what is left first ([#7](https://github.com/huishouden/groceries/issues/7)) ([c6b641f](https://github.com/huishouden/groceries/commit/c6b641f3445194552bc258689348d20d59375cf5))
+
 ## [1.2.0](https://github.com/huishouden/groceries/compare/v1.1.0...v1.2.0) (2026-10-03)
 
 
