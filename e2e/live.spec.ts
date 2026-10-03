@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectCleanLoad, expectCompactSampleBanner, expectGoogleSignInPopup, expectHuishoudenFrame, expectInstallable, expectSecurityHeaders } from '@huishouden/pwa-kit/e2e';
+import { expectBottomNav, expectCleanLoad, expectCompactSampleBanner, expectGoogleSignInPopup, expectHuishoudenFrame, expectInstallable, expectSecurityHeaders } from '@huishouden/pwa-kit/e2e';
 
 // Smoke tests of the deployed site (the kit runs them after every deploy with BASE_URL set).
 // Read-only: they stop at Google's account picker and never sign in or write data.
@@ -47,3 +47,5 @@ test('signed out, it opens on the invented sample household', async ({ page }) =
 test('sends the security headers and leaves sign-in un-framed', ({ request }) => expectSecurityHeaders(request, './', { geolocation: true }));
 
 test('signed out, the Sample data banner is one line on a phone', ({ page }) => expectCompactSampleBanner(page, './'));
+
+test('on a phone the four modes are a bottom bar', ({ page }) => expectBottomNav(page, { path: './', labels: ['Lists', 'Kitchen', 'Store', 'Meals'] }));

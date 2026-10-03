@@ -8,7 +8,7 @@ import { Signpost, X } from 'lucide-react';
 export function AislePrompt({ itemName, storeName, onSave, onSkip }: { itemName: string; storeName: string; onSave: (aisle: string) => void; onSkip: () => void }) {
   const [value, setValue] = useState('');
   return (
-    <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pt-2">
+    <div className="safe-bottom fixed inset-x-0 bottom-(--hh-bottom-nav) z-40 flex justify-center px-3 pt-2">
       <form
         role="region"
         aria-label={`Aisle for ${itemName} at ${storeName}`}
