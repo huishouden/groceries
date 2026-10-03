@@ -197,6 +197,16 @@ export function moveInOrder<T>(ordered: T[], from: number, to: number): T[] {
   return next;
 }
 
+/**
+ * The staples Groceries offers: not chores. Groceries learns only from its own lists, but staples
+ * learned when Tasks and Groceries were one app include chores; those are filed under Chores &
+ * Tasks or named like an item on one of Tasks' lists, and stay out of the shelf and the add bar.
+ */
+export function shoppingStaples(staples: Staple[], taskItems: Pick<ListItem, 'name'>[]): Staple[] {
+  const chores = new Set(taskItems.map((i) => stapleKey(i.name)));
+  return staples.filter((s) => s.category !== CATEGORIES.CHORES && !chores.has(s.id) && !chores.has(stapleKey(s.displayName ?? '')));
+}
+
 export function matchSuggestions(staples: Staple[], query: string, limit = 6): Staple[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];

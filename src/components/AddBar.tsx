@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { ChevronDown, Plus, Zap } from 'lucide-react';
+import { ChevronDown, Plus, X, Zap } from 'lucide-react';
 import {
   ALL_CATEGORIES,
   ALL_URGENCIES,
@@ -25,13 +25,15 @@ export interface AddRequest {
 interface Props {
   staples: Staple[];
   onAdd: (req: AddRequest) => void;
+  /** "Don't suggest": the × beside a suggestion forgets that staple (with Undo). */
+  onForget: (staple: Staple) => void;
   large?: boolean;
   placeholder?: string;
   /** The list's kind, so the aisle shown in the details matches what will be saved. */
   listIcon?: ListIcon;
 }
 
-export function AddBar({ staples, onAdd, large, placeholder, listIcon }: Props) {
+export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon }: Props) {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
@@ -117,18 +119,28 @@ export function AddBar({ staples, onAdd, large, placeholder, listIcon }: Props) 
       {focused && suggestions.length > 0 && (
         <ul className="absolute right-0 left-0 z-20 mt-1 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg dark:border-forest-600 dark:bg-forest-800">
           {suggestions.map((s) => (
-            <li key={s.id}>
+            <li key={s.id} className="flex items-center">
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => submit(s)}
-                className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-forest-50 dark:hover:bg-forest-700"
+                className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 py-2.5 pl-4 text-left hover:bg-forest-50 dark:hover:bg-forest-700"
               >
-                <span>
+                <span className="min-w-0 truncate">
                   <span className="font-medium">{s.displayName}</span>
                   <span className="ml-2 text-sm text-stone-500">{s.category}</span>
                 </span>
-                <span className="text-sm text-stone-400">added {s.timesAdded}×</span>
+                {s.timesAdded > 0 && <span className="shrink-0 text-sm text-stone-400">added {s.timesAdded}×</span>}
+              </button>
+              {/* Keeps the field focused, so the list stays open for the next one. */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onForget(s)}
+                aria-label={`Don't suggest ${s.displayName}`}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-forest-700 dark:hover:text-stone-200"
+              >
+                <X size={18} aria-hidden="true" />
               </button>
             </li>
           ))}

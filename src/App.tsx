@@ -357,7 +357,7 @@ function HouseholdApp({
   const aisles = useStoreAisles(db, household.id, aisleStoreId);
   const [askAisleFor, setAskAisleFor] = useState<string | null>(null);
   const toggle = (item: ListItem) => {
-    repo.toggleCompleted(item);
+    repo.toggleCompleted(item, data.lists.some((l) => l.id === item.listId));
     // Just checked off in a store, with no aisle on record there yet: offer to note it.
     setAskAisleFor(!item.completed && shoppingStoreId && !aisles.has(stapleKey(item.name)) ? item.id : null);
   };
@@ -464,7 +464,13 @@ function HouseholdApp({
     }
   };
   const addStaple = (s: Staple) =>
-    selectedList && repo.addItem({ listId: selectedList.id, name: s.displayName, category: s.category, quantity: s.defaultQuantity, addedBy: addedAs, by: email });
+    selectedList &&
+    repo.addItem({ listId: selectedList.id, listIcon: selectedList.icon, name: s.displayName, category: s.category, quantity: s.defaultQuantity, addedBy: addedAs, by: email });
+  const forgetStaple = (s: Staple) => {
+    repo.forgetStaple(s.id);
+    const id = ++undoCount.current;
+    setUndoAction({ id, message: `Won't suggest "${s.displayName}"`, undo: () => repo.restoreStaple(s) });
+  };
 
   function offerUndo(removed: ListItem[], how: 'deleted' | 'cleared') {
     if (removed.length === 0) return;
@@ -542,6 +548,7 @@ function HouseholdApp({
             onSelectList={setSelectedId}
             onAdd={add}
             onAddStaple={addStaple}
+            onForgetStaple={forgetStaple}
             onToggle={toggle}
            
             aisle={aisleProps}
@@ -572,7 +579,9 @@ function HouseholdApp({
             }}
             onSaveFavorite={(meal) => repo.saveFavorite(meal, addedAs)}
             onRemoveFavorite={(id) => repo.removeFavorite(id)}
-            onAddItems={(listId, names, notes) => names.forEach((name) => repo.addItem({ listId, name, notes, addedBy: addedAs, by: email }))}
+            onAddItems={(listId, names, notes) =>
+              names.forEach((name) => repo.addItem({ listId, listIcon: data.lists.find((l) => l.id === listId)?.icon, name, notes, addedBy: addedAs, by: email }))
+            }
             readOnly={!canSetUp}
           />
         ) : mode === 'store' ? (
@@ -621,6 +630,7 @@ function HouseholdApp({
             mayChange={mayChange}
             onAdd={add}
             onAddStaple={addStaple}
+            onForgetStaple={forgetStaple}
             onToggle={toggle}
            
             aisle={aisleProps}

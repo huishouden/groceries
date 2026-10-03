@@ -81,6 +81,8 @@ test('undoing a clear in Store mode restores the checked items', async ({ page }
   await expect(page.getByRole('button', { name: /Bread/ })).toHaveCount(0);
 
   await undoBar(page).getByRole('button', { name: 'Undo' }).click();
+  // Its section is all in the cart, so it waits in the folded In cart group.
+  await page.getByRole('button', { name: 'In cart (1)' }).click();
   await expect(page.getByRole('button', { name: 'Mark Bread not done' })).toBeVisible();
 });
 

@@ -43,6 +43,7 @@ import {
   itemData,
   moveInOrder,
   positionBetween,
+  shoppingStaples,
   stapleKey,
   type Category,
   type Household,
@@ -145,6 +146,7 @@ export interface HouseholdData {
   /** Huishouden Tasks' to-do lists, only to name them (Google Tasks settings). */
   taskLists: ShoppingList[];
   items: ListItem[];
+  /** What to suggest: the household's staples minus chores (model.ts shoppingStaples). */
   staples: Staple[];
   loaded: boolean;
   /** Set while a subscription is failing; it keeps retrying in the background. */
@@ -233,12 +235,16 @@ export function useHouseholdData(db: Firestore, householdId: string): HouseholdD
     const ids = new Set(lists.map((l) => l.id));
     return items.filter((i) => ids.has(i.listId));
   }, [lists, items]);
+  const suggested = useMemo(() => {
+    const taskIds = new Set(taskLists.map((l) => l.id));
+    return shoppingStaples(staples, (items ?? []).filter((i) => taskIds.has(i.listId)));
+  }, [staples, taskLists, items]);
 
   return {
     lists: lists ?? [],
     taskLists,
     items: shopping,
-    staples,
+    staples: suggested,
     loaded: lists !== null && items !== null,
     error: Object.values(errors).find((e) => e) ?? null,
     pendingWrites: pending.lists || pending.items,
@@ -413,11 +419,14 @@ export class HouseholdRepo {
       updatedAt: now,
       completedAt: null,
     } satisfies Omit<ListItem, 'id'>);
-    batch.set(
-      doc(this.col('staples'), stapleKey(name)),
-      { displayName: name, category, defaultQuantity: quantity, timesAdded: increment(1), lastAddedAt: now },
-      { merge: true },
-    );
+    // Learned only from Groceries' own lists: chores and notes are Huishouden Tasks'.
+    if (!isTaskList(input.listIcon)) {
+      batch.set(
+        doc(this.col('staples'), stapleKey(name)),
+        { displayName: name, category, defaultQuantity: quantity, timesAdded: increment(1), lastAddedAt: now },
+        { merge: true },
+      );
+    }
     void batch.commit();
     return ref.id;
   }
@@ -427,13 +436,14 @@ export class HouseholdRepo {
     void setDoc(doc(this.col('staples'), stapleKey(name)), { displayName: name.trim(), category }, { merge: true });
   }
 
-  toggleCompleted(item: ListItem): void {
+  /** `learn`: the item is on one of Groceries' own lists, so buying it counts toward its staple. */
+  toggleCompleted(item: ListItem, learn: boolean): void {
     this.track('check item');
     const now = Date.now();
     const completed = !item.completed;
     const batch = writeBatch(this.db);
     batch.update(doc(this.col('items'), item.id), { completed, completedAt: completed ? now : null, updatedAt: now });
-    if (completed) {
+    if (completed && learn) {
       batch.set(
         doc(this.col('staples'), stapleKey(item.name)),
         { displayName: item.name, category: item.category, timesCompleted: increment(1) },
@@ -592,10 +602,15 @@ export class HouseholdRepo {
     return settled(deleteDoc(doc(this.col('favorites'), id)), this.local);
   }
 
+  /** "Don't suggest": the staple is forgotten until the item is added again. */
   forgetStaple(id: string): void {
-    const batch = writeBatch(this.db);
-    batch.delete(doc(this.col('staples'), id));
-    void batch.commit();
+    void deleteDoc(doc(this.col('staples'), id));
+  }
+
+  /** Undo for forgetStaple: the staple as it was, counts and all. */
+  restoreStaple(staple: Staple): void {
+    const { id, ...data } = staple;
+    void setDoc(doc(this.col('staples'), id), data);
   }
 }
 

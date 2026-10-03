@@ -4,7 +4,7 @@ import { collection, disableNetwork, doc, initializeFirestore, memoryLocalCache,
 // On a Firestore that didn't come from initFirestore the kit's writes are Firestore's own (no outbox).
 import { writeBatch } from '@huishouden/pwa-kit/firestore';
 import { DAY, HOUR, addDays, toYmd } from '@huishouden/pwa-kit/time';
-import { CATEGORIES, DEFAULT_LISTS, URGENCY, type Category, type Household, type ListItem, type Urgency } from './model';
+import { CATEGORIES, DEFAULT_LISTS, URGENCY, stapleKey, type Category, type Household, type ListItem, type Staple, type Urgency } from './model';
 import { validateMeals, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from './menus';
 import type { PlannedMeal } from './mealPlan';
 import type { StoreLayout } from './stores';
@@ -73,6 +73,37 @@ export function demoItems(now: number): ListItem[] {
     item('pantry', 'Black beans', PANTRY, now, { quantity: '3 cans' }),
     item('hardware', 'Furnace filter 16x25', HARDWARE_HOME, now),
     item('hardware', 'Light bulbs', HARDWARE_HOME, now, { quantity: '4', notes: 'Soft white' }),
+    // A to-do on Huishouden Tasks' list: Groceries never shows it or suggests it.
+    item('chores', 'Take coats to the dry cleaner', CATEGORIES.OTHER, now),
+  ];
+}
+
+/**
+ * What the household buys often (the shelf and the add bar's suggestions), plus two chores learned
+ * when Tasks and Groceries were one app: one filed under Chores & Tasks, one named like the to-do
+ * above. Neither is suggested.
+ */
+export function demoStaples(now: number): Staple[] {
+  const { PRODUCE, DAIRY_EGGS, BAKERY, PANTRY, BEVERAGES, CHORES, OTHER } = CATEGORIES;
+  const staple = (displayName: string, category: Category, timesAdded: number, daysAgo: number): Staple => ({
+    id: stapleKey(displayName),
+    displayName,
+    category,
+    defaultQuantity: '1',
+    timesAdded,
+    timesCompleted: timesAdded - 1,
+    lastAddedAt: now - daysAgo * DAY,
+  });
+  return [
+    staple('Bananas', PRODUCE, 14, 1),
+    staple('Butter', DAIRY_EGGS, 9, 6),
+    staple('Apples', PRODUCE, 8, 4),
+    staple('Cheddar cheese', DAIRY_EGGS, 6, 9),
+    staple('Bagels', BAKERY, 5, 12),
+    staple('Pasta', PANTRY, 4, 15),
+    staple('Orange juice', BEVERAGES, 3, 8),
+    staple('Unload the dishwasher', CHORES, 11, 200),
+    staple('Take coats to the dry cleaner', OTHER, 7, 300),
   ];
 }
 
@@ -116,6 +147,10 @@ export function openDemo(now: number = Date.now()): Promise<Firestore> {
     for (const i of demoItems(now)) {
       const { id, ...data } = i;
       batch.set(doc(col('items'), id), Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)));
+    }
+    for (const st of demoStaples(now)) {
+      const { id, ...data } = st;
+      batch.set(doc(col('staples'), id), data);
     }
     const meals = demoMeals();
     batch.set(doc(col('menus'), 'demo-menu'), { createdAt: now - 3 * HOUR, createdBy: 'Sam', ingredients: ['Salmon', 'Zucchini', 'Rice'], meals } satisfies Omit<Menu, 'id'>);
