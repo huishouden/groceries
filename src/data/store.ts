@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { syncAgenda, type AgendaInput } from '@huishouden/pwa-kit/agenda';
-import { APP, agendaItems } from './publish';
+import { syncTodos, type TodoInput } from '@huishouden/pwa-kit/todos';
+import { APP, agendaItems, todoItems } from './publish';
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -598,15 +599,30 @@ export class HouseholdRepo {
   }
 }
 
-/** How long the meal plan stays still before the agenda is brought in step. */
+/** How long the meal plan or the lists stay still before the agenda and to-do list are brought in step. */
 const PUBLISH_DELAY_MS = 3000;
 
+/** Groceries' lists and the items on them, once both have loaded (null before, so nothing is cleared early). */
+export interface PublishLists {
+  lists: ShoppingList[];
+  items: ListItem[];
+}
+
 /**
- * Keeps the household agenda in step with the meal plan (planned dinners), from whichever device has
- * Groceries open: a few seconds after the last change, and once on open. The kit writes only what
- * changed, so devices doing the same work cost a read each and no writes.
+ * Keeps the household agenda in step with the meal plan (planned dinners), and the household to-do
+ * list with what is left to buy (one summary line), from whichever device has Groceries open: a few
+ * seconds after the last change, and once on open. The kit writes only what changed, so devices
+ * doing the same work cost a read each and no writes.
  */
-export function usePublish(db: Firestore, householdId: string, by: string, plan: PlannedMeal[] | null, enabled = true, restricted = false): void {
+export function usePublish(
+  db: Firestore,
+  householdId: string,
+  by: string,
+  plan: PlannedMeal[] | null,
+  shopping: PublishLists | null,
+  enabled = true,
+  restricted = false,
+): void {
   const agenda = useMemo(() => (enabled && plan !== null ? agendaItems(plan) : null), [enabled, plan]);
   const agendaKey = agenda ? JSON.stringify(agenda) : null;
   useEffect(() => {
@@ -614,4 +630,12 @@ export function usePublish(db: Firestore, householdId: string, by: string, plan:
     const timer = setTimeout(() => void syncAgenda(db, householdId, APP, JSON.parse(agendaKey) as AgendaInput[], { by, restricted }).catch(() => {}), PUBLISH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [db, householdId, by, agendaKey, restricted]);
+
+  const todos = useMemo(() => (enabled && shopping !== null ? todoItems(shopping.lists, shopping.items) : null), [enabled, shopping]);
+  const todosKey = todos ? JSON.stringify(todos) : null;
+  useEffect(() => {
+    if (!todosKey) return;
+    const timer = setTimeout(() => void syncTodos(db, householdId, APP, JSON.parse(todosKey) as TodoInput[], { by, restricted }).catch(() => {}), PUBLISH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [db, householdId, by, todosKey, restricted]);
 }
