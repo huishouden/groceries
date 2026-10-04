@@ -297,5 +297,6 @@
   "errors.unknown": "Algo salió mal. Intenta de nuevo en un rato.",
   "publish.needToday": "Para hoy: {count}",
   "publish.summary": "{count, plural, one {Compras: # cosa en la lista} other {Compras: # cosas en la lista}}",
-  "agenda.dinner": "Cena: {meal}"
+  "agenda.dinner": "Cena: {meal}",
+  "agenda.meal": "{slot}: {meal}"
 }

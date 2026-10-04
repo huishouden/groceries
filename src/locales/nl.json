@@ -297,5 +297,6 @@
   "errors.unknown": "Er ging iets mis. Probeer het zo opnieuw.",
   "publish.needToday": "Vandaag nodig: {count}",
   "publish.summary": "{count, plural, one {Boodschappen: # ding op de lijst} other {Boodschappen: # dingen op de lijst}}",
-  "agenda.dinner": "Avondeten: {meal}"
+  "agenda.dinner": "Avondeten: {meal}",
+  "agenda.meal": "{slot}: {meal}"
 }

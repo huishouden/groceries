@@ -346,6 +346,12 @@ test('an idea planned for a day shows in the shared week, and a dinner on the ho
 
   const week = page.getByRole('region', { name: 'This week' });
   await expect(week.getByRole('row', { name: /^Tomorrow/ })).toContainText('Mushroom rice bowl');
+  // Into the person's own calendar, as the agenda has it: all day, "Dinner: …".
+  await week.getByRole('row', { name: /^Tomorrow/ }).getByRole('button', { name: 'Add Dinner: Mushroom rice bowl to a calendar' }).click();
+  const google = new URL((await week.getByRole('menuitem', { name: 'Google Calendar' }).getAttribute('href'))!);
+  expect(google.searchParams.get('text')).toBe('Dinner: Mushroom rice bowl');
+  expect(google.searchParams.get('dates')).toMatch(/^\d{8}\/\d{8}$/);
+  await page.keyboard.press('Escape');
   // Published as Groceries', so Huishouden Tasks' own agenda sync leaves it alone.
   await expect.poll(async () => (await readHouseholdCollection('agenda')).map((a) => `${a.app}: ${a.title}`)).toEqual(['groceries: Dinner: Mushroom rice bowl']);
 
