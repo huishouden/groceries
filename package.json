@@ -1,6 +1,7 @@
 {
   "name": "huishouden-groceries",
   "private": true,
+  "license": "PolyForm-Shield-1.0.0",
   "version": "1.5.1",
   "type": "module",
   "scripts": {
