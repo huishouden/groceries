@@ -9,11 +9,12 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { DEFAULT_PANTRY, type Diet } from '@huishouden/pwa-kit/food';
 import { MENU_MODEL, MENU_RESPONSE_SCHEMA, menuPrompt, menuSystemInstruction, validateMeals, groupMeals, mealIngredients, MEAL_LABELS, type MealContext } from '../src/data/menus';
+import { SUITE_ORIGIN } from '@huishouden/pwa-kit/site';
 
 const PROJECT = 'huishouden-piekstra';
 const MODEL = process.env.MODEL ?? MENU_MODEL;
 const APP_ID = '1:865471112898:web:88de281c1be2181a4afd5b';
-const SITE = 'https://huishouden-piekstra.web.app';
+const SITE = SUITE_ORIGIN;
 
 const split = (s: string | undefined) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 const have = split(process.argv[2]);

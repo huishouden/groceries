@@ -4,6 +4,7 @@ import { todoDoc } from '@huishouden/pwa-kit/todos';
 import { APP, agendaItems, todoItems } from '../../src/data/publish';
 import { URGENCY, type ListItem, type ShoppingList } from '../../src/data/model';
 import type { PlannedMeal } from '../../src/data/mealPlan';
+import { SUITE_ORIGIN } from '@huishouden/pwa-kit/site';
 
 const planned = (day: PlannedMeal['day'], type: PlannedMeal['type'], name: string): PlannedMeal => ({
   day,
@@ -61,7 +62,7 @@ describe('todoItems', () => {
       status: 'info',
       title: 'Groceries: 2 things on the list',
       createdAt: 100,
-      url: 'https://huishouden-piekstra.web.app/groceries/',
+      url: `${SUITE_ORIGIN}/groceries/`,
       private: false,
     });
     expect(all[0]).not.toHaveProperty('done');
