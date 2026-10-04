@@ -8,6 +8,7 @@ import { CATEGORIES, DEFAULT_LISTS, URGENCY, stapleKey, type Category, type Hous
 import { validateMeals, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from './menus';
 import type { PlannedMeal } from './mealPlan';
 import type { StoreLayout } from './stores';
+import type { HouseholdHome } from '@huishouden/pwa-kit/home';
 
 // Signed out, Groceries shows an invented household so it can be tried and screenshotted (CI's
 // before/after and README images). It is the real app on a Firestore that never goes online: an
@@ -21,6 +22,16 @@ export const DEMO_HOUSEHOLD: Household = {
   members: [DEMO_EMAIL, 'sam@example.com'],
   joined: [DEMO_EMAIL, 'sam@example.com'],
   createdAt: 0,
+};
+
+/** The sample household's home: an invented address in Springfield, Illinois. */
+export const DEMO_HOME: HouseholdHome = {
+  address: '12 Example Lane, Springfield, Illinois 62701',
+  lat: 39.7817,
+  lng: -89.6501,
+  timeZone: 'America/Chicago',
+  setBy: DEMO_EMAIL,
+  updatedAt: 0,
 };
 
 let seq = 0;
@@ -126,7 +137,12 @@ export function demoMeals(): Meal[] {
 }
 
 export function demoStore(): Omit<StoreLayout, 'id'> {
-  return { name: 'Example Market', categoryOrder: [], aisleLabels: { [CATEGORIES.PRODUCE]: 'Front', [CATEGORIES.DAIRY_EGGS]: 'Back wall' }, location: null, osmId: null, address: '', createdAt: 0 };
+  return { name: 'Example Market', categoryOrder: [], aisleLabels: { [CATEGORIES.PRODUCE]: 'Front', [CATEGORIES.DAIRY_EGGS]: 'Back wall' }, location: { lat: 39.7700, lng: -89.6800 }, osmId: null, address: '', createdAt: 0 };
+}
+
+/** A second invented store, nearer home than Example Market, so the store picker shows nearest first. */
+export function demoStore2(): Omit<StoreLayout, 'id'> {
+  return { name: 'Sample Foods', categoryOrder: [], aisleLabels: {}, location: { lat: 39.7900, lng: -89.6440 }, osmId: null, address: '', createdAt: 0 };
 }
 
 let opened: Promise<Firestore> | null = null;
@@ -142,7 +158,7 @@ export function openDemo(now: number = Date.now()): Promise<Firestore> {
     await disableNetwork(db);
     const col = (name: string) => collection(db, 'households', DEMO_HOUSEHOLD.id, name);
     const batch = writeBatch(db);
-    batch.set(doc(db, 'households', DEMO_HOUSEHOLD.id), { name: DEMO_HOUSEHOLD.name, members: DEMO_HOUSEHOLD.members, joined: DEMO_HOUSEHOLD.joined, createdAt: now - 90 * DAY });
+    batch.set(doc(db, 'households', DEMO_HOUSEHOLD.id), { name: DEMO_HOUSEHOLD.name, members: DEMO_HOUSEHOLD.members, joined: DEMO_HOUSEHOLD.joined, home: DEMO_HOME, createdAt: now - 90 * DAY });
     for (const list of DEFAULT_LISTS) batch.set(doc(col('lists'), list.id), { ...list, createdAt: now - 90 * DAY });
     for (const i of demoItems(now)) {
       const { id, ...data } = i;
@@ -158,6 +174,7 @@ export function openDemo(now: number = Date.now()): Promise<Firestore> {
     const tomorrow = addDays(toYmd(now), 1);
     batch.set(doc(col('mealPlan'), `${tomorrow}_dinner`), { day: tomorrow, type: 'dinner', name: meals[2].name, meal: meals[2], by: DEMO_EMAIL, updatedAt: now } satisfies PlannedMeal);
     batch.set(doc(col('stores'), 'demo-store'), demoStore());
+    batch.set(doc(col('stores'), 'demo-store-2'), demoStore2());
     // Never acknowledged (there is no server); the cache has it at once.
     void batch.commit();
     return db;

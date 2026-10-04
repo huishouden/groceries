@@ -127,6 +127,8 @@
   "store.shoppingAt": "Winkelen bij",
   "store.typical": "Gewone winkel",
   "store.add": "Winkel toevoegen",
+  "store.nearestFromHome": "Dichtstbij eerst, vanaf thuis",
+  "store.nearestFromHere": "Dichtstbij eerst, vanaf waar je bent",
   "store.namePlaceholder": "Buurtsuper op de hoek",
   "store.name": "Naam van de winkel",
   "store.editLayout": "Indeling van {store} bewerken",

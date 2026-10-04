@@ -127,6 +127,8 @@
   "store.shoppingAt": "Shopping at",
   "store.typical": "Typical store",
   "store.add": "Add store",
+  "store.nearestFromHome": "Nearest first, from home",
+  "store.nearestFromHere": "Nearest first, from where you are",
   "store.namePlaceholder": "Corner Grocer on Main St",
   "store.name": "Store name",
   "store.editLayout": "Edit {store} layout",

@@ -105,6 +105,25 @@ export function nearestStore(stores: StoreLayout[], here: GeoPoint, maxMeters = 
 }
 
 /**
+ * Saved stores nearest first from `from` (the device or the household's home), with each one's
+ * distance in metres; stores without a saved location follow in their usual order. Without `from`,
+ * the usual order and no distances.
+ */
+export function storesByDistance(stores: StoreLayout[], from: GeoPoint | null | undefined): { stores: StoreLayout[]; meters: Map<string, number> } {
+  const meters = new Map<string, number>();
+  if (!from) return { stores, meters };
+  for (const store of stores) if (store.location) meters.set(store.id, distanceMeters(from, store.location));
+  // Array.prototype.sort is stable, so stores without a location keep their order.
+  const sorted = [...stores].sort((a, b) => {
+    const da = meters.get(a.id);
+    const db = meters.get(b.id);
+    if (da === undefined || db === undefined) return (da === undefined ? 1 : 0) - (db === undefined ? 1 : 0);
+    return da - db;
+  });
+  return { stores: sorted, meters };
+}
+
+/**
  * What is left comes first: sections with something still to get, in the store's order, each with
  * its checked items at the bottom; sections where everything is checked fold into one "In cart"
  * group after them.

@@ -127,6 +127,8 @@
   "store.shoppingAt": "Comprando en",
   "store.typical": "Tienda típica",
   "store.add": "Agregar tienda",
+  "store.nearestFromHome": "Las más cercanas primero, desde casa",
+  "store.nearestFromHere": "Las más cercanas primero, desde donde estás",
   "store.namePlaceholder": "Abarrotes de la esquina",
   "store.name": "Nombre de la tienda",
   "store.editLayout": "Editar el orden de {store}",
