@@ -24,7 +24,7 @@ test('groceries told to an assistant land on the list; a Google list Tasks takes
     ];
   });
 
-  await page.getByRole('button', { name: 'Groceries settings' }).click();
+  await page.getByRole('button', { name: 'App settings' }).click();
   const settings = page.getByRole('region', { name: 'Google Tasks', exact: true });
   await settings.getByRole('button', { name: 'Connect Google Tasks' }).click();
   await expect(settings).toContainText('My Tasks: goes to Chores & Notes in Tasks');
