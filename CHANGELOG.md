@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/huishouden/groceries/compare/v1.2.1...v1.3.0) (2026-10-04)
+
+
+### Features
+
+* dark mode that follows the suite's theme ([#9](https://github.com/huishouden/groceries/issues/9)) ([085a24c](https://github.com/huishouden/groceries/commit/085a24cf3d78beb21afbf3950b18bd9e476f0e5e))
+
 ## [1.2.1](https://github.com/huishouden/groceries/compare/v1.2.0...v1.2.1) (2026-10-03)
 
 
