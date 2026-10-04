@@ -82,3 +82,10 @@ Deploys authenticate through Workload Identity Federation (no stored keys) with 
 ## History
 
 Groceries began as the shopping half of Huishouden Tasks. Its files were moved here with their history (`git filter-repo`); commit messages before the split refer to pull requests in huishouden/tasks.
+
+## License
+
+Source available under [PolyForm Shield 1.0.0](LICENSE): you may use, study and modify this code
+for any purpose except providing a product that competes with Huishouden.
+
+Huishouden and its logo are the project's brand; please don't use them for other products.
