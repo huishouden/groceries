@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/huishouden/groceries/compare/v1.3.0...v1.4.0) (2026-10-04)
+
+
+### Features
+
+* Groceries in Spanish and Dutch ([#11](https://github.com/huishouden/groceries/issues/11)) ([ac71af4](https://github.com/huishouden/groceries/commit/ac71af424b3afc87b5276c84679c1a5fe1ca7486))
+
 ## [1.3.0](https://github.com/huishouden/groceries/compare/v1.2.1...v1.3.0) (2026-10-04)
 
 
