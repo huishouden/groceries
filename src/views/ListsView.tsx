@@ -87,12 +87,12 @@ export function ListsView(props: Props) {
             key={l.id}
             onClick={() => props.onSelectList(l.id)}
             className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left ${
-              l.id === selectedList.id ? 'bg-forest-100 dark:bg-forest-700' : 'hover:bg-stone-100 dark:hover:bg-forest-800'
+              l.id === selectedList.id ? 'bg-tint-strong' : 'hover:bg-stone-100 dark:hover:bg-forest-800'
             }`}
           >
             <ListIconBadge icon={l.icon} color={l.color} />
             <span className="min-w-0 flex-1 truncate font-medium">{l.name}</span>
-            {pendingCount(l.id) > 0 && <span className="text-sm text-stone-500">{pendingCount(l.id)}</span>}
+            {pendingCount(l.id) > 0 && <span className="text-sm text-muted">{pendingCount(l.id)}</span>}
           </button>
         ))}
         {setUp ? (
@@ -107,7 +107,7 @@ export function ListsView(props: Props) {
             <ArrowUpDown size={18} /> Reorder lists
           </button>
         )}
-        <a href={TASKS_PATH} className={`${ghostButton} mt-4 justify-start text-sm font-normal text-stone-600 dark:text-stone-300`}>
+        <a href={TASKS_PATH} className={`${ghostButton} mt-4 justify-start text-sm font-normal text-muted`}>
           <ListChecks size={18} /> To-dos and chores are in Tasks
         </a>
       </nav>
@@ -126,7 +126,7 @@ export function ListsView(props: Props) {
           {setUp && lists.length > 1 && <Chip onClick={props.onReorderLists}>Reorder</Chip>}
           <a
             href={TASKS_PATH}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm whitespace-nowrap text-stone-600 underline-offset-2 hover:underline dark:text-stone-300"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm whitespace-nowrap text-muted underline-offset-2 hover:underline"
           >
             <ListChecks size={16} /> To-dos are in Tasks
           </a>
@@ -138,7 +138,7 @@ export function ListsView(props: Props) {
             <ListIconBadge icon={selectedList.icon} color={selectedList.color} size="lg" />
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-2xl font-bold">{selectedList.name}</h1>
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-muted">
                 {listItems.filter((i) => !i.completed).length} to get · {listItems.filter((i) => i.completed).length} done
               </p>
             </div>
@@ -163,7 +163,7 @@ export function ListsView(props: Props) {
           <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} onForget={props.onForgetStaple} />
 
           {(listItems.length > 6 || search) && (
-            <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 dark:border-forest-700 dark:bg-forest-800">
+            <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-surface px-3 dark:border-forest-700">
               <Search size={18} className="text-stone-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search items, notes or people" className="min-w-0 flex-1 bg-transparent py-2 outline-none" />
               {search && (
@@ -188,7 +188,7 @@ export function ListsView(props: Props) {
           )}
 
           {pending.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-stone-300 p-8 text-center text-stone-500 dark:border-forest-600">
+            <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
               {listItems.length === 0 ? 'Nothing here yet. Type above to add the first item.' : 'All done.'}
             </p>
           ) : (

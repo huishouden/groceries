@@ -44,7 +44,7 @@ test('an invited member sees the same lists and changes sync both ways', async (
   await createHousehold(page);
   await addItem(page, 'Eggs');
 
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'App settings' }).click();
   await page.getByPlaceholder('Their Google account email').fill('bob@example.com');
   await page.getByRole('button', { name: 'Add member' }).click();
   const bobRow = page.locator('li', { hasText: 'bob@example.com' });
@@ -61,7 +61,7 @@ test('an invited member sees the same lists and changes sync both ways', async (
   await addItem(bob, 'Diapers');
   await expect(page.locator('main li', { hasText: 'Diapers' })).toContainText('Bob');
 
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'App settings' }).click();
   await expect(page.locator('li', { hasText: 'bob@example.com' })).toContainText('Joined');
   await page.getByRole('button', { name: 'Close' }).click();
 
@@ -81,4 +81,18 @@ test('someone not in the household cannot see it', async ({ browser, page }) => 
   await expect(mallory.getByText('Joining someone?')).toBeVisible();
   await expect(mallory.getByText('Secret item')).toHaveCount(0);
   await other.close();
+});
+
+test('the theme in Settings is the suite-wide choice', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await signIn(page, 'alice@example.com', 'Alice Example');
+  await createHousehold(page);
+  await page.getByRole('button', { name: 'App settings' }).click();
+  const theme = page.getByRole('group', { name: 'Theme' });
+  await expect(theme.getByRole('button', { name: 'Automatic' })).toHaveAttribute('aria-pressed', 'true');
+  await theme.getByRole('button', { name: 'Dark' }).click();
+  await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+  expect(await page.evaluate(() => localStorage.getItem('hh-theme'))).toContain('dark');
+  await theme.getByRole('button', { name: 'Automatic' }).click();
+  await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
 });

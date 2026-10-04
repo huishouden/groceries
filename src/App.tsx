@@ -41,7 +41,7 @@ import { GoogleTasksSuggestions, useGoogleTasksSuggestions } from '@huishouden/p
 import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
 import { classifyItem, suggestMeals } from './lib/ai';
 import { getFirebase, googleClientId, useEmulators } from './lib/firebase';
-import { PrefScope, useApplyTheme, useInstallPrompt, useOnline, usePref, type ThemeMode } from './lib/prefs';
+import { PrefScope, useInstallPrompt, useOnline, usePref } from './lib/prefs';
 import { HubView } from './views/HubView';
 import { ListsView } from './views/ListsView';
 import { StoreView } from './views/StoreView';
@@ -62,17 +62,16 @@ const VERSION = `${import.meta.env.VITE_APP_VERSION} (${import.meta.env.VITE_BUI
 
 interface FrameProps {
   user: User | null | undefined;
-  dark: boolean;
   signingIn: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
 }
 
 /** The Huishouden frame (DESIGN.md "Frame"): the kit's app bar over the page. */
-function Frame({ user, dark, signingIn, onSignIn, onSignOut, nav, actions, children }: FrameProps & { nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
+function Frame({ user, signingIn, onSignIn, onSignOut, nav, actions, children }: FrameProps & { nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex h-full flex-col">
-      <AppBar app="Groceries" glyph="cart" portalUrl={PORTAL_URL} version={VERSION} theme={dark ? 'dark' : 'light'} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut}>
+      <AppBar app="Groceries" glyph="cart" portalUrl={PORTAL_URL} version={VERSION} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut}>
         {nav}
         {actions}
       </AppBar>
@@ -98,8 +97,6 @@ function LoadFailure({ error }: { error: FriendlyError }) {
 }
 
 export default function App() {
-  const [theme, setTheme] = usePref<ThemeMode>('theme', 'auto');
-  const dark = useApplyTheme(theme);
   const auth = useAuth();
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<FriendlyError | null>(null);
@@ -120,7 +117,7 @@ export default function App() {
   }, []);
   const onSignOut = useCallback(() => void signOut(), []);
   const user = auth.status === 'signed-in' ? auth.user : auth.status === 'loading' ? undefined : null;
-  const frame: FrameProps = { user, dark, signingIn, onSignIn, onSignOut };
+  const frame: FrameProps = { user, signingIn, onSignIn, onSignOut };
 
   if (auth.status === 'loading') {
     return (
@@ -140,12 +137,12 @@ export default function App() {
       </Frame>
     );
   }
-  if (auth.status === 'signed-out') return <DemoApp frame={frame} theme={theme} setTheme={setTheme} signInError={signInError} />;
-  return <SignedIn db={auth.db} auth={auth.auth} email={auth.email} user={auth.user} theme={theme} setTheme={setTheme} frame={frame} />;
+  if (auth.status === 'signed-out') return <DemoApp frame={frame} signInError={signInError} />;
+  return <SignedIn db={auth.db} auth={auth.auth} email={auth.email} user={auth.user} frame={frame} />;
 }
 
 /** Signed out: the app on an invented household, so it can be tried (and screenshotted) before signing in. */
-function DemoApp({ frame, theme, setTheme, signInError }: { frame: FrameProps; theme: ThemeMode; setTheme: (t: ThemeMode) => void; signInError: FriendlyError | null }) {
+function DemoApp({ frame, signInError }: { frame: FrameProps; signInError: FriendlyError | null }) {
   const [db, setDb] = useState<Firestore | null>(null);
   useEffect(() => {
     void openDemo().then(setDb);
@@ -168,12 +165,12 @@ function DemoApp({ frame, theme, setTheme, signInError }: { frame: FrameProps; t
   );
   return (
     <PrefScope.Provider value="demo.">
-      <HouseholdApp db={db} email={DEMO_EMAIL} displayName="Alex Example" household={DEMO_HOUSEHOLD} theme={theme} setTheme={setTheme} frame={frame} demo banner={banner} />
+      <HouseholdApp db={db} email={DEMO_EMAIL} displayName="Alex Example" household={DEMO_HOUSEHOLD} frame={frame} demo banner={banner} />
     </PrefScope.Provider>
   );
 }
 
-function SignedIn({ db, auth, email, user, theme, setTheme, frame }: { db: Firestore; auth: Auth; email: string; user: User; theme: ThemeMode; setTheme: (t: ThemeMode) => void; frame: FrameProps }) {
+function SignedIn({ db, auth, email, user, frame }: { db: Firestore; auth: Auth; email: string; user: User; frame: FrameProps }) {
   const household = useHousehold(db, email);
   // Members' names and photos come from their own sign-ins (shown in the portal and beside entries).
   const householdId = household.status === 'ready' ? household.household.id : null;
@@ -206,7 +203,7 @@ function SignedIn({ db, auth, email, user, theme, setTheme, frame }: { db: Fires
       </Frame>
     );
   }
-  return <HouseholdApp db={db} email={email} displayName={user.displayName} household={household.household} theme={theme} setTheme={setTheme} frame={frame} auth={auth} />;
+  return <HouseholdApp db={db} email={email} displayName={user.displayName} household={household.household} frame={frame} auth={auth} />;
 }
 
 function Onboarding({ db, email, displayName }: { db: Firestore; email: string; displayName: string | null }) {
@@ -218,9 +215,9 @@ function Onboarding({ db, email, displayName }: { db: Firestore; email: string; 
       <div className={`${cardClass} grid w-full max-w-md gap-5 p-6`}>
         <div>
           <h2 className="mb-1 font-semibold">Joining someone?</h2>
-          <p className="text-sm text-stone-600 dark:text-stone-300">
+          <p className="text-sm text-muted">
             Ask them to add <strong>{email}</strong> to the household in{' '}
-            <a href={PORTAL_URL} className="font-medium text-forest-700 underline underline-offset-2 dark:text-forest-300">
+            <a href={PORTAL_URL} className="font-medium text-link underline underline-offset-2">
               Huishouden
             </a>{' '}
             or in Groceries' Settings. This screen switches to your shared lists as soon as they do.
@@ -270,8 +267,6 @@ function HouseholdApp({
   email,
   displayName,
   household,
-  theme,
-  setTheme,
   frame,
   demo = false,
   banner,
@@ -281,8 +276,6 @@ function HouseholdApp({
   email: string;
   displayName: string | null;
   household: Household;
-  theme: ThemeMode;
-  setTheme: (t: ThemeMode) => void;
   frame: FrameProps;
   /** The signed-out sample household: nothing is published, nothing leaves the device. */
   demo?: boolean;
@@ -499,9 +492,9 @@ function HouseholdApp({
           {demo ? null : !online ? (
             <CloudOff size={20} className="text-terracotta" aria-label="Offline: changes sync when back online" role="img" />
           ) : data.pendingWrites ? (
-            <Loader2 size={18} className="animate-spin text-stone-600 dark:text-stone-300" aria-label="Syncing" role="img" />
+            <Loader2 size={18} className="animate-spin text-muted" aria-label="Syncing" role="img" />
           ) : null}
-          <button onClick={() => setSettings(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-forest-700" aria-label="Settings">
+          <button onClick={() => setSettings(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-stone-100 dark:hover:bg-forest-700" aria-label="App settings">
             <Settings size={20} />
           </button>
         </span>
@@ -514,9 +507,9 @@ function HouseholdApp({
             <div className="grid justify-items-center gap-3 text-center">
               <Loader2 className="animate-spin text-forest-500" size={36} />
               {data.error && (
-                <p className="max-w-sm text-sm text-stone-500" role="status">
+                <p className="max-w-sm text-sm text-muted" role="status">
                   Still connecting. Retrying automatically.
-                  <span className="mt-1 block text-xs text-stone-400">{data.error}</span>
+                  <span className="mt-1 block text-xs text-muted">{data.error}</span>
                 </p>
               )}
             </div>
@@ -524,13 +517,13 @@ function HouseholdApp({
         ) : !selectedList ? (
           <Centered>
             <div className="grid max-w-sm justify-items-center gap-3 text-center">
-              <p className="text-stone-600 dark:text-stone-300">This household has no lists.</p>
+              <p className="text-muted">This household has no lists.</p>
               {canSetUp ? (
                 <>
                   <button onClick={() => repo.restoreDefaultLists()} className={primaryButton}>
                     Add the default lists
                   </button>
-                  <button onClick={() => setNewList(true)} className="text-sm text-stone-500 underline">
+                  <button onClick={() => setNewList(true)} className="text-sm text-muted underline">
                     Or create your own
                   </button>
                 </>
@@ -695,8 +688,6 @@ function HouseholdApp({
           myEmail={email}
           addedAs={addedAs}
           setAddedAs={setAddedAs}
-          theme={theme}
-          setTheme={setTheme}
           install={install}
           googleTasks={
             !demo && canSetUp && (

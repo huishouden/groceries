@@ -137,34 +137,34 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
   return (
     <div className="mx-auto grid max-w-4xl gap-6 p-4 sm:p-6">
       {readOnly ? (
-        <section className="grid gap-1 rounded-3xl bg-white p-4 sm:p-5 dark:bg-forest-800">
+        <section className="grid gap-1 rounded-3xl bg-surface p-4 sm:p-5">
           <h1 className="text-2xl font-bold">Meals</h1>
-          <p className="text-sm text-stone-600 dark:text-stone-300">Only admins and members can suggest, save and plan meals.</p>
+          <p className="text-sm text-muted">Only admins and members can suggest, save and plan meals.</p>
         </section>
       ) : (
-      <section className="grid gap-3 rounded-3xl bg-white p-4 sm:p-5 dark:bg-forest-800">
+      <section className="grid gap-3 rounded-3xl bg-surface p-4 sm:p-5">
         <div>
           <h1 className="text-2xl font-bold">What can we make?</h1>
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-muted">
             From what you have (bought in the last 10 days) and what's still on your lists. Tap anything used up or not wanted.
           </p>
           {strictDiets.length > 0 && (
-            <p className="mt-1 text-sm font-medium text-forest-700 dark:text-forest-300">
+            <p className="mt-1 text-sm font-medium text-link">
               Every idea fits {whoHas(people, (d) => isStrict(d)).join(', ')}
             </p>
           )}
           {heat && heat.max < 3 && (
-            <p className="mt-1 text-sm font-medium text-forest-700 dark:text-forest-300">
+            <p className="mt-1 text-sm font-medium text-link">
               {heat.max === 0 ? 'No spicy ideas' : heat.max === 1 ? 'Only a little heat' : 'At most medium heat'}, for {heat.who}
             </p>
           )}
           {gentleDiets.length > 0 && (
-            <p className="mt-1 text-sm text-stone-600 dark:text-stone-300">
+            <p className="mt-1 text-sm text-muted">
               Gentler ideas first for {whoHas(people, (d) => !isStrict(d), true).join(', ')}; each shows how hot, acidic, rich and sweet it is.
             </p>
           )}
         </div>
-        {bought.length + extras.length > 0 && <h2 className="text-sm font-semibold text-stone-600 dark:text-stone-300">Have</h2>}
+        {bought.length + extras.length > 0 && <h2 className="text-sm font-semibold text-muted">Have</h2>}
         <div className="flex flex-wrap gap-2" aria-label="Ingredients">
           {bought.map((name) => (
             <Chip key={name} active={!usedUp.has(name)} onClick={() => toggle(name)}>
@@ -177,12 +177,12 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
             </Chip>
           ))}
           {bought.length === 0 && extras.length === 0 && planned.length === 0 && (
-            <p className="text-sm text-stone-500">Nothing bought recently or on a food list. Add ingredients below.</p>
+            <p className="text-sm text-muted">Nothing bought recently or on a food list. Add ingredients below.</p>
           )}
         </div>
         {planned.length > 0 && (
           <>
-            <h2 className="text-sm font-semibold text-stone-600 dark:text-stone-300">On the list</h2>
+            <h2 className="text-sm font-semibold text-muted">On the list</h2>
             <div className="flex flex-wrap gap-2" aria-label="On the list">
               {planned.map((name) => (
                 <Chip key={`list-${name}`} active={!usedUp.has(name)} onClick={() => toggle(name)}>
@@ -210,11 +210,11 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
           {busy ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
           {busy ? 'Thinking up meals… usually 10–30 seconds' : 'Suggest meals'}
         </button>
-        {available.length < MIN_INGREDIENTS && <p className="text-sm text-stone-500">Needs at least {MIN_INGREDIENTS} ingredients.</p>}
+        {available.length < MIN_INGREDIENTS && <p className="text-sm text-muted">Needs at least {MIN_INGREDIENTS} ingredients.</p>}
         {!online && !error && <ErrorNotice error={friendlyError(new Error('offline'), 'meals', false)} />}
         {error && <ErrorNotice error={error} retrying={busy} onRetry={online ? () => void run() : undefined} />}
         {dropped.length > 0 && (
-          <p className="text-sm text-stone-600 dark:text-stone-300" role="status">
+          <p className="text-sm text-muted" role="status">
             Left out {dropped.length === 1 ? '1 idea' : `${dropped.length} ideas`} that didn't fit: {dropped.map((d) => `${d.name} (${d.reason})`).join('; ')}.
           </p>
         )}
@@ -249,7 +249,7 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
           </div>
           {groupMeals(shown.meals, reflux).map(([type, meals]) => (
             <div key={type}>
-              <h2 className="mb-2 text-sm font-semibold tracking-wider text-stone-500 uppercase">{MEAL_LABELS[type]}</h2>
+              <h2 className="mb-2 text-sm font-semibold tracking-wider text-muted uppercase">{MEAL_LABELS[type]}</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{meals.map((meal) => card(meal, meal.name))}</div>
             </div>
           ))}
@@ -264,7 +264,7 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
             <button
               onClick={() => setFavoritesOpen(!favoritesOpen)}
               aria-expanded={favoritesOpen}
-              className="flex w-full items-center gap-2 text-left text-sm font-semibold tracking-wider text-stone-500 uppercase"
+              className="flex w-full items-center gap-2 text-left text-sm font-semibold tracking-wider text-muted uppercase"
             >
               <Star size={16} className="fill-terracotta text-terracotta" /> Favorites ({favorites.length})
               <ChevronDown size={16} className={`ml-auto transition ${favoritesOpen ? 'rotate-180' : ''}`} />
@@ -352,15 +352,15 @@ function MealCard({
   const row = (title: string, names: string[]) =>
     names.length > 0 && (
       <p>
-        <span className="font-medium text-stone-700 dark:text-stone-200">{title}:</span> {names.join(', ')}
+        <span className="font-medium text-ink-soft">{title}:</span> {names.join(', ')}
       </p>
     );
   const iconButton = 'shrink-0 rounded-lg p-1.5 hover:bg-stone-100 dark:hover:bg-forest-700';
   return (
-    <article className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-forest-700 dark:bg-forest-800">
+    <article className="rounded-2xl border border-stone-200 bg-surface p-4 dark:border-forest-700">
       <div className="mb-2 flex items-start gap-1">
         <div className="min-w-0 flex-1">
-          {label && <p className="text-xs font-semibold tracking-wider text-stone-500 uppercase">{label}</p>}
+          {label && <p className="text-xs font-semibold tracking-wider text-muted uppercase">{label}</p>}
           <h3 className="font-semibold">{meal.name}</h3>
         </div>
         {onToggleSaved && (
@@ -391,7 +391,7 @@ function MealCard({
         )}
       </div>
       <MealBadges meal={meal} reflux={reflux} />
-      <div className="mb-2 grid gap-0.5 text-sm text-stone-600 dark:text-stone-300">
+      <div className="mb-2 grid gap-0.5 text-sm text-muted">
         {row('Have', sources.have)}
         {row('On the list', sources.list)}
         {sources.extra.length > 0 && (
@@ -400,7 +400,7 @@ function MealCard({
             {listName && (
               <button
                 onClick={() => onAddExtras(sources.extra)}
-                className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 font-medium text-forest-700 hover:bg-forest-50 dark:text-forest-300 dark:hover:bg-forest-700"
+                className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 font-medium text-link hover:bg-tint"
                 aria-label={`Add ${sources.extra.join(', ')} to ${listName}`}
               >
                 <ListPlus size={16} /> Add to list
@@ -413,7 +413,7 @@ function MealCard({
         {meal.parts.map((part, i) => (
           <li key={i}>
             <span className="font-medium">{sentenceCase(part.ingredients.join(', '))}</span>
-            <span className="text-stone-500 dark:text-stone-400"> · {part.prep}</span>
+            <span className="text-muted"> · {part.prep}</span>
           </li>
         ))}
       </ul>
@@ -436,15 +436,15 @@ function dayName(day: Ymd, now: number = Date.now()): string {
 function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; onUnplan?: (day: Ymd, type: PlanType) => Promise<void> }) {
   if (plan.length === 0) {
     return (
-      <section aria-label="This week" className="rounded-2xl border border-dashed border-stone-300 p-4 text-sm text-stone-500 dark:border-forest-600">
-        <h2 className="mb-1 font-semibold text-stone-700 dark:text-stone-200">This week</h2>
+      <section aria-label="This week" className="rounded-2xl border border-dashed border-line p-4 text-sm text-muted">
+        <h2 className="mb-1 font-semibold text-ink-soft">This week</h2>
         Nothing planned yet. Use the calendar button on an idea to plan it for a day.
       </section>
     );
   }
   const slot = (day: Ymd, type: PlanType) => {
     const p = plan.find((x) => x.day === day && x.type === type);
-    if (!p) return <span className="text-stone-500" aria-label="Nothing planned">–</span>;
+    if (!p) return <span className="text-muted" aria-label="Nothing planned">–</span>;
     return (
       <span className="flex items-center gap-1">
         <span className="min-w-0 flex-1">{p.name}</span>
@@ -462,11 +462,11 @@ function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; 
   };
   return (
     <section aria-label="This week" className="grid gap-2">
-      <h2 className="text-sm font-semibold tracking-wider text-stone-500 uppercase">This week</h2>
+      <h2 className="text-sm font-semibold tracking-wider text-muted uppercase">This week</h2>
       {/* Tablet and up: a table, days down, meals across. */}
-      <table className="hidden w-full table-fixed overflow-hidden rounded-2xl border border-stone-200 bg-white text-left text-sm sm:table dark:border-forest-700 dark:bg-forest-800">
+      <table className="hidden w-full table-fixed overflow-hidden rounded-2xl border border-stone-200 bg-surface text-left text-sm sm:table dark:border-forest-700">
         <caption className="sr-only">This week</caption>
-        <thead className="text-stone-500">
+        <thead className="text-muted">
           <tr>
             <th scope="col" className="w-36 px-3 py-2 font-medium">
               <span className="sr-only">Day</span>
@@ -498,12 +498,12 @@ function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; 
         {days
           .filter((day) => plan.some((p) => p.day === day))
           .map((day) => (
-            <li key={day} className="rounded-2xl border border-stone-200 bg-white p-3 dark:border-forest-700 dark:bg-forest-800">
+            <li key={day} className="rounded-2xl border border-stone-200 bg-surface p-3 dark:border-forest-700">
               <h3 className="mb-1 text-sm font-semibold">{dayName(day)}</h3>
               <dl className="grid gap-1 text-sm">
                 {PLAN_TYPES.filter((t) => plan.some((p) => p.day === day && p.type === t)).map((t) => (
                   <div key={t} className="flex items-center gap-2">
-                    <dt className="w-20 shrink-0 text-stone-500">{MEAL_LABELS[t]}</dt>
+                    <dt className="w-20 shrink-0 text-muted">{MEAL_LABELS[t]}</dt>
                     <dd className="min-w-0 flex-1">{slot(day, t)}</dd>
                   </div>
                 ))}
@@ -538,7 +538,7 @@ function PlanDialog({ meal, days, plan, onPlan, onClose }: { meal: Meal; days: Y
             </Chip>
           ))}
         </div>
-        {taken && <p className="text-sm text-stone-600 dark:text-stone-300">Replaces {taken.name}.</p>}
+        {taken && <p className="text-sm text-muted">Replaces {taken.name}.</p>}
         <div className="mt-1 flex justify-end gap-2">
           <button onClick={onClose} className={ghostButton}>
             Cancel
@@ -644,13 +644,13 @@ function AddIngredientsDialog({
   const picked = choices.filter((c) => c.selected).map((c) => c.name);
   return (
     <Dialog title={`Add to ${list.name}`} onClose={onClose}>
-      <p className="mb-3 text-sm text-stone-500">For {meal.name}</p>
+      <p className="mb-3 text-sm text-muted">For {meal.name}</p>
       {choices.length === 0 ? (
-        <p className="text-sm text-stone-500">Nothing to buy: this meal uses only kitchen basics.</p>
+        <p className="text-sm text-muted">Nothing to buy: this meal uses only kitchen basics.</p>
       ) : (
         <ul className="grid gap-1">
           {choices.map((c, i) => (
-            <li key={c.name} className="flex items-center gap-2 rounded-xl px-2 hover:bg-stone-50 dark:hover:bg-forest-700">
+            <li key={c.name} className="flex items-center gap-2 rounded-xl px-2 hover:bg-sunken">
               <label className="flex flex-1 items-center gap-3 py-2">
                 <input
                   type="checkbox"
@@ -662,7 +662,7 @@ function AddIngredientsDialog({
                 {c.name}
               </label>
               {c.note && (
-                <span id={`${idPrefix}-${i}`} className="text-xs text-stone-500 dark:text-stone-400">
+                <span id={`${idPrefix}-${i}`} className="text-xs text-muted">
                   {c.note}
                 </span>
               )}

@@ -33,7 +33,7 @@ test('suggests meals from what was bought and shares them with the household', a
     await addItem(page, item);
     await page.getByRole('button', { name: `Mark ${item} done` }).click();
   }
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'App settings' }).click();
   await page.getByPlaceholder('Their Google account email').fill('bob@example.com');
   await page.getByRole('button', { name: 'Add member' }).click();
   await page.getByRole('button', { name: 'Close' }).click();
@@ -128,7 +128,7 @@ test('a starred meal is a household favorite on every device, and either member 
     await addItem(page, item);
     await page.getByRole('button', { name: `Mark ${item} done` }).click();
   }
-  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'App settings' }).click();
   await page.getByPlaceholder('Their Google account email').fill('bob@example.com');
   await page.getByRole('button', { name: 'Add member' }).click();
   await page.getByRole('button', { name: 'Close' }).click();
