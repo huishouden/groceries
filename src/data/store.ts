@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { syncAgenda, type AgendaInput } from '@huishouden/pwa-kit/agenda';
-import { syncTodos, type TodoInput } from '@huishouden/pwa-kit/todos';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { localizeAgenda, syncAgenda } from '@huishouden/pwa-kit/agenda';
+import { localizeTodos, syncTodos } from '@huishouden/pwa-kit/todos';
 import { APP, agendaItems, todoItems } from './publish';
 import {
   GoogleAuthProvider,
@@ -638,19 +638,36 @@ export function usePublish(
   enabled = true,
   restricted = false,
 ): void {
+  // The key notices a change; the write builds the records again in every language (docs/i18n.md step 8).
   const agenda = useMemo(() => (enabled && plan !== null ? agendaItems(plan) : null), [enabled, plan]);
   const agendaKey = agenda ? JSON.stringify(agenda) : null;
+  const latestPlan = useRef(plan);
+  latestPlan.current = plan;
   useEffect(() => {
     if (!agendaKey) return;
-    const timer = setTimeout(() => void syncAgenda(db, householdId, APP, JSON.parse(agendaKey) as AgendaInput[], { by, restricted }).catch(() => {}), PUBLISH_DELAY_MS);
+    const timer = setTimeout(() => {
+      const current = latestPlan.current;
+      if (!current) return;
+      void localizeAgenda(() => agendaItems(current))
+        .then((items) => syncAgenda(db, householdId, APP, items, { by, restricted }))
+        .catch(() => {});
+    }, PUBLISH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [db, householdId, by, agendaKey, restricted]);
 
   const todos = useMemo(() => (enabled && shopping !== null ? todoItems(shopping.lists, shopping.items) : null), [enabled, shopping]);
   const todosKey = todos ? JSON.stringify(todos) : null;
+  const latestShopping = useRef(shopping);
+  latestShopping.current = shopping;
   useEffect(() => {
     if (!todosKey) return;
-    const timer = setTimeout(() => void syncTodos(db, householdId, APP, JSON.parse(todosKey) as TodoInput[], { by, restricted }).catch(() => {}), PUBLISH_DELAY_MS);
+    const timer = setTimeout(() => {
+      const current = latestShopping.current;
+      if (!current) return;
+      void localizeTodos(() => todoItems(current.lists, current.items))
+        .then((items) => syncTodos(db, householdId, APP, items, { by, restricted }))
+        .catch(() => {});
+    }, PUBLISH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [db, householdId, by, todosKey, restricted]);
 }

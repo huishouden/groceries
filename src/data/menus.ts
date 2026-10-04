@@ -1,6 +1,8 @@
 import { DEFAULT_PANTRY, SPICE_MAX_HEAT, householdDietPreferences, householdDietRules, householdMaxHeat, pantryText, type FoodPreferences } from '@huishouden/pwa-kit/food';
 import { avoidCaffeine, dietProblems, levelScore, mealLevels, type MealLevels } from './diet';
 import { CATEGORIES, type ListItem, type ShoppingList } from './model';
+import { formatList, getLang, type Lang } from '@huishouden/pwa-kit/i18n';
+import { t } from '../i18n';
 
 export const MENU_MODEL = 'gemini-3.8-flash';
 /** Used when the main model is overloaded, which happens on the free tier at busy times. */
@@ -9,12 +11,10 @@ export const MENU_FALLBACK_MODEL = 'gemini-3.5-flash-lite';
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
-export const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snacks',
-};
+const MEAL_KEYS = { breakfast: 'meals.breakfast', lunch: 'meals.lunch', dinner: 'meals.dinner', snack: 'meals.snacks' } as const satisfies Record<MealType, string>;
+
+/** "Breakfast", "Desayuno", "Ontbijt". */
+export const mealLabel = (type: MealType): string => t(MEAL_KEYS[type]);
 
 export interface MealPart {
   /** What goes into this part, named as on the grocery list or from the basics. */
@@ -31,7 +31,25 @@ export interface Meal {
   extras?: string[];
   /** How hot, acidic, rich and sweet it is (0–3 each), for gentle diets such as GERD. */
   levels?: MealLevels;
+  /**
+   * The name and each part's prep in the language of whoever asked for the ideas, for display.
+   * `name` and `prep` stay English: the diet checks read them.
+   */
+  local?: { lang: Exclude<Lang, 'en'>; name: string; prep: string[] };
 }
+
+/** The meal's name in `lang` (the active language) when the ideas came with it, else as the model wrote it. */
+export function mealName(meal: Pick<Meal, 'name' | 'local'>, lang: Lang = getLang()): string {
+  return meal.local && meal.local.lang === lang ? meal.local.name : meal.name;
+}
+
+/** A part's prep, the same way as `mealName`. */
+export function mealPrep(meal: Pick<Meal, 'parts' | 'local'>, index: number, lang: Lang = getLang()): string {
+  const own = meal.local && meal.local.lang === lang ? meal.local.prep[index] : undefined;
+  return own ?? meal.parts[index]?.prep ?? '';
+}
+
+const LANGUAGE_NAMES: Record<Exclude<Lang, 'en'>, string> = { es: 'Latin American Spanish (informal "tú")', nl: 'Netherlands Dutch (informal "je")' };
 
 /** At most this many ingredients a meal may add beyond what is bought or listed. */
 export const MAX_EXTRAS = 3;
@@ -192,6 +210,7 @@ export const MENU_RESPONSE_SCHEMA = {
         properties: {
           type: { type: 'string', enum: [...MEAL_TYPES] },
           name: { type: 'string', description: 'Short, plain meal name, e.g. "Baked salmon with rice and zucchini"' },
+          localName: { type: 'string', description: 'The name in the LANGUAGE the request names; empty when it names none' },
           parts: {
             type: 'array',
             items: {
@@ -199,6 +218,7 @@ export const MENU_RESPONSE_SCHEMA = {
               properties: {
                 ingredients: { type: 'array', items: { type: 'string' } },
                 prep: { type: 'string' },
+                localPrep: { type: 'string', description: 'The prep in the LANGUAGE the request names; empty when it names none' },
               },
               required: ['ingredients', 'prep'],
             },
@@ -257,7 +277,7 @@ export function heatLimit(food: Pick<FoodPreferences, 'people'>): { max: number;
   const max = householdMaxHeat(food);
   if (max === undefined) return null;
   const who = food.people.filter((p) => p.spice && SPICE_MAX_HEAT[p.spice] === max).map((p) => p.name);
-  return { max, who: who.join(' and ') };
+  return { max, who: formatList(who) };
 }
 
 const HEAT_WORDS = ['not spicy at all', 'at most a little heat', 'at most medium heat', 'any heat'];
@@ -271,6 +291,7 @@ export function menuPrompt(ctx: MealContext, perType = 3): string {
     ...(limit && limit.max < 3 ? [`Heat: every meal ${HEAT_WORDS[limit.max]}, heat ${limit.max} of 3 or less (for ${limit.who}).`] : []),
   ];
   const prefs = householdDietPreferences(ctx.food);
+  const lang = getLang();
   return [
     `HAVE: ${ctx.have.join(', ') || '(nothing yet)'}`,
     `ON THE LIST: ${ctx.onList.join(', ') || '(nothing)'}`,
@@ -278,6 +299,11 @@ export function menuPrompt(ctx: MealContext, perType = 3): string {
     rules.length ? `HOUSEHOLD RULES (must all hold for every meal):\n${rules.map((r) => `- ${r}`).join('\n')}` : '',
     prefs.length ? `HOUSEHOLD PREFERENCES (most meals, not all):\n${prefs.map((r) => `- ${r}`).join('\n')}` : '',
     `Suggest ${perType} breakfasts, ${perType} lunches, ${perType} dinners and 2 snacks. At least ${perType} of the meals should each add 1 or 2 extras.`,
+    // The household reads another language: names and prep stay English (the diet checks read
+    // them), with a translation of each for the screen. Ingredients stay as written above.
+    lang !== 'en'
+      ? `LANGUAGE: ${LANGUAGE_NAMES[lang]}. Write name and prep in English as above, and also give localName and each part's localPrep in that language, for display.`
+      : '',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -326,15 +352,21 @@ export function validateMeals(raw: unknown, ctx: MealContext): ValidatedMeals {
       parts: cleanParts.map((p) => ({ ingredients: p.ingredients.map((i) => i.trim()).filter(Boolean), prep: p.prep.trim() })),
       ...(realExtras.length ? { extras: realExtras } : {}),
     };
+    const lang = getLang();
+    const localName = (m as { localName?: unknown }).localName;
+    const localPrep = parts.map((p) => (p as { localPrep?: unknown }).localPrep);
+    if (lang !== 'en' && typeof localName === 'string' && localName.trim() && localPrep.every((p) => typeof p === 'string' && p.trim())) {
+      meal.local = { lang, name: localName.trim().slice(0, 120), prep: (localPrep as string[]).map((p) => p.trim()) };
+    }
     meal.levels = mealLevels(meal, rated);
     const limit = heatLimit(ctx.food);
     if (limit && meal.levels.heat > limit.max) {
-      result.droppedDiet.push({ name: meal.name, reason: `too spicy for ${limit.who}` });
+      result.droppedDiet.push({ name: mealName(meal), reason: t('meals.tooSpicy', { who: limit.who }) });
       continue;
     }
     const problems = dietProblems(meal, ctx.food);
     if (problems.length) {
-      result.droppedDiet.push({ name: meal.name, reason: `${problems[0].term} (${problems[0].who})` });
+      result.droppedDiet.push({ name: mealName(meal), reason: t('meals.dropReason', { term: problems[0].term, who: problems[0].who }) });
       continue;
     }
     result.meals.push(meal);

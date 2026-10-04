@@ -5,10 +5,11 @@ import { RoleNote } from '@huishouden/pwa-kit/react/roles';
 import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableRows } from '../components/SortableRows';
 import { Chip, ghostButton, inputClass, primaryButton } from '../components/ui';
-import { moveInOrder, stapleKey, type Category, type ListItem, type ShoppingList } from '../data/model';
+import { categoryLabel, listName, moveInOrder, stapleKey, type Category, type ListItem, type ShoppingList } from '../data/model';
 import { fullCategoryOrder, groupWithAisles, leftFirst, type GeoPoint, type StoreLayout } from '../data/stores';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { useWakeLock } from '../lib/prefs';
+import { t, useT } from '../i18n';
 
 export type StoreChanges = Partial<Pick<StoreLayout, 'name' | 'categoryOrder' | 'aisleLabels'>> & { location?: GeoPoint | null };
 
@@ -37,12 +38,12 @@ interface Props {
 function currentPosition(): Promise<GeoPoint> {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {
-      reject(new Error('Location is not available on this device.'));
+      reject(new Error(t('location.unavailable')));
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      (e) => reject(new Error(e.code === e.PERMISSION_DENIED ? 'Location permission was denied.' : e.message)),
+      (e) => reject(new Error(e.code === e.PERMISSION_DENIED ? t('location.denied') : e.message)),
       // Always a fresh fix: a cached one from minutes ago can still be at the last store.
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 },
     );
@@ -104,6 +105,7 @@ function cleanLabels(labels: Partial<Record<Category, string>>): Partial<Record<
 /** In-store checklist walked section by section in the chosen store's order. */
 export function StoreView(props: Props) {
   const { lists, items, selectedList, stores, storeId, onSelectStore } = props;
+  const t = useT();
   useWakeLock(true);
   const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -134,17 +136,17 @@ export function StoreView(props: Props) {
         <div className="scrollbar-none flex gap-2 overflow-x-auto">
           {lists.map((l) => (
             <Chip key={l.id} active={l.id === selectedList.id} onClick={() => props.onSelectList(l.id)}>
-              {l.name}
+              {listName(l)}
             </Chip>
           ))}
         </div>
       )}
 
-      <section aria-label="Store" className="grid gap-2 rounded-2xl border border-stone-200 bg-surface p-3 dark:border-forest-700">
+      <section aria-label={t('modes.store')} className="grid gap-2 rounded-2xl border border-stone-200 bg-surface p-3 dark:border-forest-700">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted">Shopping at</span>
+          <span className="text-sm text-muted">{t('store.shoppingAt')}</span>
           <Chip active={!store} onClick={() => choose(null)}>
-            Typical store
+            {t('store.typical')}
           </Chip>
           {stores.map((s) => (
             <Chip key={s.id} active={s.id === store?.id} onClick={() => choose(s.id)}>
@@ -154,7 +156,7 @@ export function StoreView(props: Props) {
           ))}
           {props.canSetUp !== false && (
             <Chip onClick={() => setAdding(true)}>
-              <Plus size={12} className="mr-0.5 inline" /> Add store
+              <Plus size={12} className="mr-0.5 inline" /> {t('store.add')}
             </Chip>
           )}
         </div>
@@ -171,16 +173,16 @@ export function StoreView(props: Props) {
               setEditing(true);
             }}
           >
-            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Corner Grocer on Main St" className={inputClass} autoFocus aria-label="Store name" />
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('store.namePlaceholder')} className={inputClass} autoFocus aria-label={t('store.name')} />
             <button type="submit" disabled={!newName.trim()} className={primaryButton}>
-              Add
+              {t('common.add')}
             </button>
           </form>
         )}
         {props.canSetUp === false && <RoleNote action="change-settings" />}
         {store && !editing && props.canSetUp !== false && (
           <button onClick={() => setEditing(true)} className={`${ghostButton} justify-self-start text-sm`}>
-            <Pencil size={16} /> Edit {store.name} layout
+            <Pencil size={16} /> {t('store.editLayout', { store: store.name })}
           </button>
         )}
       </section>
@@ -190,7 +192,7 @@ export function StoreView(props: Props) {
           store={store}
           onUpdate={(changes) => props.onUpdateStore(store.id, changes)}
           onDelete={() => {
-            if (!confirm(`Delete ${store.name}?`)) return;
+            if (!confirm(t('store.deleteConfirm', { store: store.name }))) return;
             props.onDeleteStore(store.id);
             choose(null);
           }}
@@ -200,27 +202,25 @@ export function StoreView(props: Props) {
         <div ref={listRef} className="contents">
           <div ref={headRef} className="sticky top-0 z-10 -mx-4 bg-page px-4 py-2 sm:-mx-6 sm:px-6">
             <div className="flex items-baseline justify-between">
-              <h1 className="text-2xl font-bold">{selectedList.name}</h1>
-              <span className="text-muted">
-                {done} of {total} in cart
-              </span>
+              <h1 className="text-2xl font-bold">{listName(selectedList)}</h1>
+              <span className="text-muted">{t('store.progress', { done, total })}</span>
             </div>
             <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-stone-200 dark:bg-forest-700">
               <div className="h-full rounded-full bg-forest-500 transition-all" style={{ width: `${progress * 100}%` }} />
             </div>
           </div>
-          {total === 0 && <p className="p-8 text-center text-muted">This list is empty.</p>}
+          {total === 0 && <p className="p-8 text-center text-muted">{t('store.empty')}</p>}
           {sections.map((group) => (
-            <section key={group.key} aria-label={group.title}>
+            <section key={group.key} aria-label={categoryLabel(group.title)}>
               {/* Stays under the list's heading while its items scroll by, so you know which section they are in. */}
               <h2 className={sectionHeading}>
-                {group.title}
+                {categoryLabel(group.title)}
                 {group.label && (
                   <span className="ml-1.5 rounded-md bg-tint-strong px-1.5 py-0.5 tracking-normal text-forest-700 normal-case dark:text-forest-100">
                     {group.label}
                   </span>
                 )}
-                <span className="font-normal"> · {group.items.filter((i) => !i.completed).length} left</span>
+                <span className="font-normal"> · {t('store.left', { count: group.items.filter((i) => !i.completed).length })}</span>
               </h2>
               <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
                 {group.items.map((item) => (
@@ -230,10 +230,10 @@ export function StoreView(props: Props) {
             </section>
           ))}
           {inCart.length > 0 && (
-            <section aria-label="In cart">
+            <section aria-label={t('store.inCart')}>
               <h2 className={`${sectionHeading} py-0`}>
                 <button type="button" onClick={() => setShowCart(!showCart)} aria-expanded={showCart} className="-ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 tracking-wider uppercase">
-                  <ChevronDown size={16} className={showCart ? 'rotate-180' : ''} aria-hidden="true" /> In cart ({inCart.length})
+                  <ChevronDown size={16} className={showCart ? 'rotate-180' : ''} aria-hidden="true" /> {t('store.inCartCount', { count: inCart.length })}
                 </button>
               </h2>
               {showCart && (
@@ -247,7 +247,7 @@ export function StoreView(props: Props) {
           )}
           {done > 0 && (
             <button onClick={() => props.onClearCompleted(listItems)} className={`${ghostButton} justify-self-center`}>
-              Clear {done} checked item{done === 1 ? '' : 's'}
+              {t('store.clearChecked', { count: done })}
             </button>
           )}
         </div>
@@ -267,6 +267,7 @@ function LayoutEditor({
   onDelete: () => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const order = fullCategoryOrder(store.categoryOrder);
   const [labels, setLabels] = useState<Partial<Record<Category, string>>>(store.aisleLabels ?? {});
   const [locating, setLocating] = useState(false);
@@ -285,26 +286,26 @@ function LayoutEditor({
   }
 
   return (
-    <section aria-label={`${store.name} layout`} className="grid gap-3">
+    <section aria-label={t('store.layout', { store: store.name })} className="grid gap-3">
       <div>
-        <h1 className="text-xl font-bold">{store.name} layout</h1>
-        <p className="text-sm text-muted">Drag sections into the order you walk this store. Aisle labels are optional.</p>
+        <h1 className="text-xl font-bold">{t('store.layout', { store: store.name })}</h1>
+        <p className="text-sm text-muted">{t('store.layoutHint')}</p>
       </div>
       <SortableRows
         ids={order}
-        label={(c) => c}
+        label={(c) => categoryLabel(c)}
         onMove={(from, to) => onUpdate({ categoryOrder: moveInOrder(order, from, to) })}
         renderRow={(c) => (
           <>
-            <span className="min-w-0 flex-1 font-medium">{c}</span>
+            <span className="min-w-0 flex-1 font-medium">{categoryLabel(c)}</span>
             {/* Fixed width in a wrapper: the shared input style is full-width and would win over w-28. */}
             <div className="w-24 shrink-0 sm:w-28">
               <input
                 value={labels[c as Category] ?? ''}
                 onChange={(e) => setLabels({ ...labels, [c]: e.target.value })}
                 onBlur={() => onUpdate({ aisleLabels: cleanLabels(labels) })}
-                placeholder="Aisle"
-                aria-label={`Aisle for ${c}`}
+                placeholder={t('store.aisle')}
+                aria-label={t('aisle.for', { name: categoryLabel(c) })}
                 className={`${inputClass} py-1.5 text-sm`}
               />
             </div>
@@ -315,22 +316,22 @@ function LayoutEditor({
         {store.location ? (
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm text-muted">
-              <MapPin size={14} className="mr-1 inline" /> Location saved. Store mode picks {store.name} when you're there.
+              <MapPin size={14} className="mr-1 inline" /> {t('store.locationSaved', { store: store.name })}
             </span>
             <button onClick={() => onUpdate({ location: null })} className={`${ghostButton} text-sm`}>
-              Forget
+              {t('store.forget')}
             </button>
           </div>
         ) : (
           <button onClick={() => void saveLocation()} disabled={locating} className={`${ghostButton} justify-self-start`}>
-            <LocateFixed size={18} className={locating ? 'animate-pulse' : ''} /> {locating ? 'Finding you…' : `I'm at ${store.name}: save this spot`}
+            <LocateFixed size={18} className={locating ? 'animate-pulse' : ''} /> {locating ? t('store.locating') : t('store.saveSpot', { store: store.name })}
           </button>
         )}
         {error && <ErrorNotice error={error} onRetry={() => void saveLocation()} retrying={locating} />}
       </div>
       <div className="flex justify-between">
         <button onClick={onDelete} className={`${ghostButton} text-red-600 dark:text-red-400`}>
-          <Trash2 size={18} /> Delete store
+          <Trash2 size={18} /> {t('store.delete')}
         </button>
         <button
           onClick={() => {
@@ -339,7 +340,7 @@ function LayoutEditor({
           }}
           className={primaryButton}
         >
-          <Check size={18} /> Done
+          <Check size={18} /> {t('common.done')}
         </button>
       </div>
     </section>

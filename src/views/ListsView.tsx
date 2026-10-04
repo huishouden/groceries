@@ -7,7 +7,8 @@ import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableItems } from '../components/SortableItems';
 import { StaplesShelf } from '../components/StaplesShelf';
 import { Chip, ListIconBadge, ghostButton } from '../components/ui';
-import { AISLE_ORDER, formatListForSharing, sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
+import { useT } from '../i18n';
+import { AISLE_ORDER, categoryLabel, formatListForSharing, listName, sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
 
 /** Huishouden Tasks on the suite's one site: the household's to-do lists (same origin, so staging links to staging). */
 const TASKS_PATH = '/tasks/';
@@ -40,6 +41,7 @@ interface Props {
 }
 
 export function ListsView(props: Props) {
+  const t = useT();
   const { lists, items, staples, selectedList } = props;
   const mine = (item: ListItem) => props.mayChange?.(item) !== false;
   const setUp = props.canSetUp !== false;
@@ -65,10 +67,10 @@ export function ListsView(props: Props) {
   const pendingCount = (listId: string) => items.filter((i) => i.listId === listId && !i.completed).length;
 
   async function share() {
-    const text = formatListForSharing(selectedList.name, listItems);
+    const text = formatListForSharing(listName(selectedList), listItems);
     if (navigator.share) {
       try {
-        await navigator.share({ title: selectedList.name, text });
+        await navigator.share({ title: listName(selectedList), text });
         return;
       } catch {
         // Cancelled or unsupported payload; fall through to the clipboard.
@@ -81,7 +83,7 @@ export function ListsView(props: Props) {
 
   return (
     <div className="flex h-full min-h-0">
-      <nav className="hidden w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-stone-200 p-3 md:flex dark:border-forest-700" aria-label="Lists">
+      <nav className="hidden w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-stone-200 p-3 md:flex dark:border-forest-700" aria-label={t('modes.lists')}>
         {lists.map((l) => (
           <button
             key={l.id}
@@ -91,24 +93,24 @@ export function ListsView(props: Props) {
             }`}
           >
             <ListIconBadge icon={l.icon} color={l.color} />
-            <span className="min-w-0 flex-1 truncate font-medium">{l.name}</span>
+            <span className="min-w-0 flex-1 truncate font-medium">{listName(l)}</span>
             {pendingCount(l.id) > 0 && <span className="text-sm text-muted">{pendingCount(l.id)}</span>}
           </button>
         ))}
         {setUp ? (
           <button onClick={props.onNewList} className={`${ghostButton} mt-2 justify-start`}>
-            <Plus size={18} /> New list
+            <Plus size={18} /> {t('lists.new')}
           </button>
         ) : (
           <RoleNote action="change-settings" className="mt-2 px-3" />
         )}
         {setUp && lists.length > 1 && (
           <button onClick={props.onReorderLists} className={`${ghostButton} justify-start`}>
-            <ArrowUpDown size={18} /> Reorder lists
+            <ArrowUpDown size={18} /> {t('lists.reorder')}
           </button>
         )}
         <a href={TASKS_PATH} className={`${ghostButton} mt-4 justify-start text-sm font-normal text-muted`}>
-          <ListChecks size={18} /> To-dos and chores are in Tasks
+          <ListChecks size={18} /> {t('lists.todosInTasks')}
         </a>
       </nav>
 
@@ -118,17 +120,17 @@ export function ListsView(props: Props) {
           {lists.length > 1 &&
             lists.map((l) => (
               <Chip key={l.id} active={l.id === selectedList.id} onClick={() => props.onSelectList(l.id)}>
-                {l.name}
+                {listName(l)}
                 {pendingCount(l.id) > 0 ? ` · ${pendingCount(l.id)}` : ''}
               </Chip>
             ))}
-          {setUp && <Chip onClick={props.onNewList}>{lists.length > 1 ? '+ New' : '+ New list'}</Chip>}
-          {setUp && lists.length > 1 && <Chip onClick={props.onReorderLists}>Reorder</Chip>}
+          {setUp && <Chip onClick={props.onNewList}>{lists.length > 1 ? t('lists.newShort') : t('lists.newChip')}</Chip>}
+          {setUp && lists.length > 1 && <Chip onClick={props.onReorderLists}>{t('lists.reorderShort')}</Chip>}
           <a
             href={TASKS_PATH}
             className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm whitespace-nowrap text-muted underline-offset-2 hover:underline"
           >
-            <ListChecks size={16} /> To-dos are in Tasks
+            <ListChecks size={16} /> {t('lists.todosInTasksShort')}
           </a>
         </div>
 
@@ -137,22 +139,22 @@ export function ListsView(props: Props) {
           <header className="flex items-center gap-3">
             <ListIconBadge icon={selectedList.icon} color={selectedList.color} size="lg" />
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-2xl font-bold">{selectedList.name}</h1>
+              <h1 className="truncate text-2xl font-bold">{listName(selectedList)}</h1>
               <p className="text-sm text-muted">
-                {listItems.filter((i) => !i.completed).length} to get · {listItems.filter((i) => i.completed).length} done
+                {t('lists.counts', { open: listItems.filter((i) => !i.completed).length, done: listItems.filter((i) => i.completed).length })}
               </p>
             </div>
-            <button onClick={() => void share()} className={ghostButton} aria-label="Share list">
+            <button onClick={() => void share()} className={ghostButton} aria-label={t('lists.share')}>
               <Share2 size={20} />
-              <span className="hidden sm:inline">{shared ? 'Copied' : 'Share'}</span>
+              <span className="hidden sm:inline">{shared ? t('lists.copied') : t('lists.shareShort')}</span>
             </button>
             {setUp && (
               <button
                 onClick={() => {
-                  if (confirm(`Delete "${selectedList.name}" and its ${listItems.length} items?`)) props.onDeleteList(selectedList);
+                  if (confirm(t('lists.deleteConfirm', { name: listName(selectedList), count: listItems.length }))) props.onDeleteList(selectedList);
                 }}
                 className={`${ghostButton} text-stone-400`}
-                aria-label="Delete list"
+                aria-label={t('lists.delete')}
               >
                 <Trash2 size={20} />
               </button>
@@ -165,9 +167,9 @@ export function ListsView(props: Props) {
           {(listItems.length > 6 || search) && (
             <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-surface px-3 dark:border-forest-700">
               <Search size={18} className="text-stone-400" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search items, notes or people" className="min-w-0 flex-1 bg-transparent py-2 outline-none" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('lists.search')} className="min-w-0 flex-1 bg-transparent py-2 outline-none" />
               {search && (
-                <button onClick={() => setSearch('')} aria-label="Clear search">
+                <button onClick={() => setSearch('')} aria-label={t('lists.clearSearch')}>
                   <X size={18} className="text-stone-400" />
                 </button>
               )}
@@ -177,11 +179,11 @@ export function ListsView(props: Props) {
           {categoryCounts.length > 1 && (
             <div className="scrollbar-none flex gap-2 overflow-x-auto">
               <Chip active={!filter} onClick={() => setFilter(null)}>
-                All
+                {t('lists.all')}
               </Chip>
               {categoryCounts.map(([c, n]) => (
                 <Chip key={c} active={filter === c} onClick={() => setFilter(filter === c ? null : c)}>
-                  {c} ({n})
+                  {categoryLabel(c)} ({n})
                 </Chip>
               ))}
             </div>
@@ -189,7 +191,7 @@ export function ListsView(props: Props) {
 
           {pending.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-line p-8 text-center text-muted">
-              {listItems.length === 0 ? 'Nothing here yet. Type above to add the first item.' : 'All done.'}
+              {listItems.length === 0 ? t('lists.empty') : t('lists.allDone')}
             </p>
           ) : (
             <SortableItems
@@ -215,11 +217,11 @@ export function ListsView(props: Props) {
             <section>
               <div className="flex items-center justify-between">
                 <button onClick={() => setShowDone(!showDone)} className={`${ghostButton} -ml-3`}>
-                  <ChevronDown size={18} className={showDone ? 'rotate-180' : ''} /> Done ({done.length})
+                  <ChevronDown size={18} className={showDone ? 'rotate-180' : ''} /> {t('lists.done', { count: done.length })}
                 </button>
                 {done.some(mine) && (
                   <button onClick={() => props.onClearCompleted(listItems.filter(mine))} className={`${ghostButton} text-sm`}>
-                    Clear done
+                    {t('lists.clearDone')}
                   </button>
                 )}
               </div>

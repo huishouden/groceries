@@ -1,22 +1,24 @@
-import { ROLE_LABELS, can, householdRole, type Role } from '@huishouden/pwa-kit/roles';
+import { can, householdRole, roleLabel, type Role } from '@huishouden/pwa-kit/roles';
 import { RoleNote, RoleSelect } from '@huishouden/pwa-kit/react/roles';
 import { useState } from 'react';
 import { Download, Search, Send, Trash2, UserPlus, Zap } from 'lucide-react';
-import { ALL_CATEGORIES, URGENCY, LIST_COLORS, SHOPPING_ICONS, moveInOrder, type Category, type Household, type ListIcon, type ListItem, type ShoppingList, type Urgency } from '../data/model';
-import { THEME_LABELS, THEME_MODES, useTheme } from '@huishouden/pwa-kit/react/theme';
+import { ALL_CATEGORIES, URGENCY, LIST_COLORS, SHOPPING_ICONS, categoryLabel, listName, moveInOrder, type Category, type Household, type ListIcon, type ListItem, type ShoppingList, type Urgency } from '../data/model';
+import { THEME_MODES, themeLabel, useTheme } from '@huishouden/pwa-kit/react/theme';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { ErrorNotice } from './ErrorNotice';
 import { Dialog, ListIconBadge, ghostButton, inputClass, primaryButton } from './ui';
 import { SortableRows } from './SortableRows';
 import { storeSearchLinks } from '../data/chains';
+import { t, useT } from '../i18n';
 
 /** "Find it at" the household's stores: each store's own search, or a web search, with the item filled in. */
 function FindAtStores({ storeNames, itemName }: { storeNames: string[]; itemName: string }) {
+  const t = useT();
   const links = storeSearchLinks(storeNames, itemName).slice(0, 6);
   if (links.length === 0) return null;
   return (
-    <div className="grid gap-1.5" role="group" aria-label="Find it at a store">
-      <span className="text-sm text-muted">Find it at</span>
+    <div className="grid gap-1.5" role="group" aria-label={t('findAt.group')}>
+      <span className="text-sm text-muted">{t('findAt.title')}</span>
       <div className="flex flex-wrap gap-2">
         {links.map((l) => (
           <a
@@ -24,7 +26,7 @@ function FindAtStores({ storeNames, itemName }: { storeNames: string[]; itemName
             href={l.url}
             target="_blank"
             rel="noreferrer"
-            aria-label={l.storeSite ? `Find ${itemName.trim()} at ${l.store}` : `Search the web for ${itemName.trim()} at ${l.store}`}
+            aria-label={l.storeSite ? t('findAt.label', { name: itemName.trim(), store: l.store }) : t('findAt.webLabel', { name: itemName.trim(), store: l.store })}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-3 text-sm text-link hover:border-forest-500"
           >
             <Search size={14} /> {l.store}
@@ -52,6 +54,7 @@ export function EditItemDialog({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
   const [notes, setNotes] = useState(item.notes);
@@ -62,7 +65,7 @@ export function EditItemDialog({
   const urgent = urgency === URGENCY.URGENT;
 
   return (
-    <Dialog title="Edit item" onClose={onClose}>
+    <Dialog title={t('item.editTitle')} onClose={onClose}>
       <form
         className="grid gap-3"
         onSubmit={(e) => {
@@ -73,26 +76,28 @@ export function EditItemDialog({
         }}
       >
         <label className="text-sm text-muted">
-          Item
+          {t('item.item')}
           <input value={name} onChange={(e) => setName(e.target.value)} className={`${inputClass} mt-1`} autoFocus />
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm text-muted">
-            Quantity
+            {t('item.quantity')}
             <input value={quantity} onChange={(e) => setQuantity(e.target.value)} className={`${inputClass} mt-1`} />
           </label>
           <label className="text-sm text-muted">
-            Section
+            {t('item.section')}
             <select value={category} onChange={(e) => setCategory(e.target.value as Category)} className={`${inputClass} mt-1`}>
               {(ALL_CATEGORIES.includes(category) ? ALL_CATEGORIES : [category, ...ALL_CATEGORIES]).map((c) => (
-                <option key={c}>{c}</option>
+                <option key={c} value={c}>
+                  {categoryLabel(c)}
+                </option>
               ))}
             </select>
           </label>
         </div>
         <label className="text-sm text-muted">
-          Notes
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Brand, size, organic…" className={`${inputClass} mt-1`} />
+          {t('common.notes')}
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('item.notesPlaceholder')} className={`${inputClass} mt-1`} />
         </label>
         <FindAtStores storeNames={storeNames} itemName={name} />
         <div className="flex flex-wrap gap-2">
@@ -102,22 +107,22 @@ export function EditItemDialog({
             aria-pressed={urgent}
             className={`${quick} ${urgent ? 'border-terracotta bg-attention-tint font-semibold text-attention' : ''}`}
           >
-            <Zap size={16} /> Need today
+            <Zap size={16} /> {t('item.needToday')}
           </button>
         </div>
         {lists.length > 1 && (
           <label className="text-sm text-muted">
-            List
+            {t('item.list')}
             <select value={listId} onChange={(e) => setListId(e.target.value)} className={`${inputClass} mt-1`}>
               {lists.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.name}
+                  {listName(l)}
                 </option>
               ))}
             </select>
           </label>
         )}
-        <p className="text-sm text-muted">Added by {item.addedBy || 'someone'}</p>
+        <p className="text-sm text-muted">{item.addedBy ? t('item.addedBy', { name: item.addedBy }) : t('item.addedBySomeone')}</p>
         <div className="mt-2 flex justify-between gap-2">
           <button
             type="button"
@@ -127,10 +132,10 @@ export function EditItemDialog({
             }}
             className={`${ghostButton} text-red-600 dark:text-red-400`}
           >
-            <Trash2 size={18} /> Delete
+            <Trash2 size={18} /> {t('common.delete')}
           </button>
           <button type="submit" className={primaryButton}>
-            Save
+            {t('common.save')}
           </button>
         </div>
       </form>
@@ -139,11 +144,12 @@ export function EditItemDialog({
 }
 
 export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, icon: ListIcon, color: string) => void; onClose: () => void }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<ListIcon>('grocery');
   const [color, setColor] = useState(LIST_COLORS[0]);
   return (
-    <Dialog title="New list" onClose={onClose}>
+    <Dialog title={t('lists.new')} onClose={onClose}>
       <form
         className="grid gap-4"
         onSubmit={(e) => {
@@ -153,9 +159,9 @@ export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, 
           onClose();
         }}
       >
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Target, Home Depot, Farmers market…" className={inputClass} autoFocus />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('newList.placeholder')} className={inputClass} autoFocus aria-label={t('newList.name')} />
         <div>
-          <p className="mb-2 text-sm text-muted">Icon</p>
+          <p className="mb-2 text-sm text-muted">{t('newList.icon')}</p>
           <div className="flex flex-wrap gap-2">
             {SHOPPING_ICONS.map((i) => (
               <button
@@ -163,7 +169,7 @@ export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, 
                 key={i}
                 onClick={() => setIcon(i)}
                 className={`rounded-2xl p-1 ${icon === i ? 'ring-2 ring-forest-500' : ''}`}
-                aria-label={i}
+                aria-label={t(ICON_KEYS[i])}
                 aria-pressed={icon === i}
               >
                 <ListIconBadge icon={i} color={color} />
@@ -172,7 +178,7 @@ export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, 
           </div>
         </div>
         <div>
-          <p className="mb-2 text-sm text-muted">Color</p>
+          <p className="mb-2 text-sm text-muted">{t('newList.color')}</p>
           <div className="flex flex-wrap gap-2">
             {LIST_COLORS.map((c) => (
               <button
@@ -181,22 +187,25 @@ export function NewListDialog({ onCreate, onClose }: { onCreate: (name: string, 
                 onClick={() => setColor(c)}
                 className={`h-9 w-9 rounded-full ${color === c ? 'ring-2 ring-forest-500 ring-offset-2 dark:ring-offset-forest-800' : ''}`}
                 style={{ backgroundColor: c }}
-                aria-label={`Color ${c}`}
+                aria-label={t('newList.colorOption', { color: c })}
                 aria-pressed={color === c}
               />
             ))}
           </div>
         </div>
         <button type="submit" disabled={!name.trim()} className={primaryButton}>
-          Create list
+          {t('newList.create')}
         </button>
       </form>
     </Dialog>
   );
 }
 
+const ICON_KEYS = { grocery: 'icon.grocery', pantry: 'icon.pantry', bulk: 'icon.bulk', hardware: 'icon.hardware', notes: 'icon.notes', chores: 'icon.chores' } as const satisfies Record<ListIcon, string>;
+
+/** The invitation text, in the inviter's language (they choose who to send it to). */
 export function inviteMessage(email: string, householdName: string, url: string): string {
-  return `I added you to "${householdName}" on Huishouden Groceries, our shared shopping lists.\n\nOpen ${url} and sign in with Google as ${email}. Then use Chrome's menu, "Install app" (or Share, "Add to Home Screen" on iPhone) to keep it on your home screen.`;
+  return t('invite.message', { household: householdName, url, email });
 }
 
 /** Opens the share sheet (text, WhatsApp, email…) or, where there is none, a prefilled email. */
@@ -205,13 +214,13 @@ async function sendInvite(email: string, householdName: string): Promise<void> {
   const text = inviteMessage(email, householdName, url);
   if (navigator.share) {
     try {
-      await navigator.share({ title: 'Join our household on Huishouden Groceries', text });
+      await navigator.share({ title: t('invite.subject'), text });
       return;
     } catch (e) {
       if ((e as DOMException).name === 'AbortError') return;
     }
   }
-  window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('Join our household on Huishouden Groceries')}&body=${encodeURIComponent(text)}`;
+  window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(t('invite.subject'))}&body=${encodeURIComponent(text)}`;
 }
 
 export function SettingsDialog({
@@ -238,6 +247,7 @@ export function SettingsDialog({
   onSetRole: (email: string, role: Role) => Promise<void>;
   onClose: () => void;
 }) {
+  const t = useT();
   const { mode, setMode } = useTheme();
   const [invite, setInvite] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('member');
@@ -246,14 +256,11 @@ export function SettingsDialog({
   const [error, setError] = useState<FriendlyError | null>(null);
   const validInvite = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invite.trim());
   return (
-    <Dialog title="Settings" onClose={onClose}>
+    <Dialog title={t('settings.title')} onClose={onClose}>
       <div className="grid gap-6">
         <section>
-          <h3 className="mb-1 font-semibold">{household.name}</h3>
-          <p className="mb-3 text-sm text-muted">
-            What each person can do depends on their role, in every Huishouden app. Add someone by the Google address they sign in
-            with, then send them the link.
-          </p>
+          <h3 className="mb-1 font-semibold" translate="no">{household.name}</h3>
+          <p className="mb-3 text-sm text-muted">{t('settings.membersHint')}</p>
           <ul className="mb-3 grid gap-1.5">
             {household.members.map((m) => {
               const joined = m === myEmail || (household.joined ?? []).includes(m);
@@ -261,33 +268,33 @@ export function SettingsDialog({
                 <li key={m} className="flex items-center gap-2 rounded-xl bg-sunken px-3 py-2">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">
-                      {m}
-                      {m === myEmail && <span className="ml-1 text-muted">(you)</span>}
+                      <span translate="no">{m}</span>
+                      {m === myEmail && <span className="ml-1 text-muted">{t('settings.you')}</span>}
                     </span>
                     <span className={`text-xs ${joined ? 'text-positive' : 'text-attention'}`}>
-                      {joined ? 'Joined' : 'Invited, not signed in yet'}
+                      {joined ? t('settings.joined') : t('settings.invited')}
                     </span>
-                    {!(admin && m !== myEmail) && <span className="text-xs text-muted"> · {ROLE_LABELS[householdRole(household, m) ?? 'member']}</span>}
+                    {!(admin && m !== myEmail) && <span className="text-xs text-muted"> · {roleLabel(householdRole(household, m) ?? 'member')}</span>}
                   </span>
                   {admin && m !== myEmail && (
                     <RoleSelect
                       value={householdRole(household, m) ?? 'member'}
-                      label={`Role for ${m}`}
+                      label={t('settings.roleFor', { email: m })}
                       onChange={(next) => void onSetRole(m, next).catch((err: unknown) => setError(friendlyError(err, 'save')))}
                     />
                   )}
                   {!joined && (
-                    <button onClick={() => void sendInvite(m, household.name)} className={`${ghostButton} text-sm`} aria-label={`Send invite to ${m}`}>
-                      <Send size={16} /> Send invite
+                    <button onClick={() => void sendInvite(m, household.name)} className={`${ghostButton} text-sm`} aria-label={t('settings.sendInviteTo', { email: m })}>
+                      <Send size={16} /> {t('settings.sendInvite')}
                     </button>
                   )}
                   {admin && m !== myEmail && (
                     <button
                       onClick={() => {
-                        if (confirm(`Remove ${m} from the household?`)) void onRemoveMember(m).catch((err: unknown) => setError(friendlyError(err, 'save')));
+                        if (confirm(t('settings.removeConfirm', { email: m }))) void onRemoveMember(m).catch((err: unknown) => setError(friendlyError(err, 'save')));
                       }}
                       className="rounded-lg p-1.5 text-stone-400 hover:text-red-600 dark:hover:text-red-300"
-                      aria-label={`Remove ${m}`}
+                      aria-label={t('settings.remove', { email: m })}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -313,9 +320,9 @@ export function SettingsDialog({
                 .catch((err: unknown) => setError(friendlyError(err, 'save')));
             }}
           >
-            <input type="email" value={invite} onChange={(e) => setInvite(e.target.value)} placeholder="Their Google account email" className={inputClass} aria-label="Their Google account email" />
-            <RoleSelect value={inviteRole} label="Their role" onChange={setInviteRole} />
-            <button type="submit" disabled={!validInvite} className={primaryButton} aria-label="Add member">
+            <input type="email" value={invite} onChange={(e) => setInvite(e.target.value)} placeholder={t('settings.inviteEmail')} className={inputClass} aria-label={t('settings.inviteEmail')} />
+            <RoleSelect value={inviteRole} label={t('settings.theirRole')} onChange={setInviteRole} />
+            <button type="submit" disabled={!validInvite} className={primaryButton} aria-label={t('settings.addMember')}>
               <UserPlus size={18} />
             </button>
           </form>
@@ -329,26 +336,26 @@ export function SettingsDialog({
 
         <section>
           <label className="text-sm font-semibold">
-            Items added on this device are labelled
+            {t('settings.addedAs')}
             <input value={addedAs} onChange={(e) => setAddedAs(e.target.value)} className={`${inputClass} mt-1 font-normal`} />
           </label>
-          <p className="mt-1 text-sm text-muted">Use "Kitchen" on the shared tablet so you can tell who added what.</p>
+          <p className="mt-1 text-sm text-muted">{t('settings.addedAsHint')}</p>
         </section>
 
         {googleTasks}
 
         <section>
-          <p id="theme-label" className="mb-2 text-sm font-semibold">Theme</p>
-          <p className="mb-2 text-sm text-muted">For every Huishouden app on this device. Automatic follows the device.</p>
+          <p id="theme-label" className="mb-2 text-sm font-semibold">{t('settings.theme')}</p>
+          <p className="mb-2 text-sm text-muted">{t('settings.themeHint')}</p>
           <div className="flex gap-2" role="group" aria-labelledby="theme-label">
-            {THEME_MODES.map((t) => (
+            {THEME_MODES.map((m) => (
               <button
-                key={t}
-                onClick={() => setMode(t)}
-                aria-pressed={mode === t}
-                className={`flex-1 rounded-xl border px-3 py-2 ${mode === t ? 'border-forest-600 bg-forest-50 font-semibold dark:bg-forest-700' : 'border-stone-200 dark:border-forest-600'}`}
+                key={m}
+                onClick={() => setMode(m)}
+                aria-pressed={mode === m}
+                className={`flex-1 rounded-xl border px-3 py-2 ${mode === m ? 'border-forest-600 bg-forest-50 font-semibold dark:bg-forest-700' : 'border-stone-200 dark:border-forest-600'}`}
               >
-                {THEME_LABELS[t]}
+                {themeLabel(m)}
               </button>
             ))}
           </div>
@@ -356,13 +363,13 @@ export function SettingsDialog({
 
         {!install.installed && (
           <section>
-            <p className="mb-2 text-sm font-semibold">Install</p>
+            <p className="mb-2 text-sm font-semibold">{t('settings.install')}</p>
             {install.canInstall ? (
               <button onClick={() => void install.install()} className={primaryButton}>
-                <Download size={18} /> Install Groceries on this device
+                <Download size={18} /> {t('settings.installButton')}
               </button>
             ) : (
-              <p className="text-sm text-muted">In Chrome, open the ⋮ menu and choose "Add to Home screen" or "Install app". On iPhone, use Share, then "Add to Home Screen".</p>
+              <p className="text-sm text-muted">{t('settings.installHint')}</p>
             )}
           </section>
         )}
@@ -373,26 +380,30 @@ export function SettingsDialog({
 }
 
 export function ReorderListsDialog({ lists, onReorder, onClose }: { lists: ShoppingList[]; onReorder: (ids: string[]) => void; onClose: () => void }) {
+  const t = useT();
   const ids = lists.map((l) => l.id);
   return (
-    <Dialog title="Reorder lists" onClose={onClose}>
-      <p className="mb-3 text-sm text-muted">Drag by the grip. Everyone in the household sees the new order.</p>
+    <Dialog title={t('lists.reorder')} onClose={onClose}>
+      <p className="mb-3 text-sm text-muted">{t('reorder.hint')}</p>
       <SortableRows
         ids={ids}
-        label={(id) => lists.find((l) => l.id === id)?.name ?? id}
+        label={(id) => {
+          const list = lists.find((l) => l.id === id);
+          return list ? listName(list) : id;
+        }}
         onMove={(from, to) => onReorder(moveInOrder(ids, from, to))}
         renderRow={(id) => {
           const list = lists.find((l) => l.id === id)!;
           return (
             <>
               <ListIconBadge icon={list.icon} color={list.color} size="sm" />
-              <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{list.name}</span>
+              <span className="min-w-0 flex-1 font-medium [overflow-wrap:anywhere]">{listName(list)}</span>
             </>
           );
         }}
       />
       <button onClick={onClose} className={`${primaryButton} mt-4 w-full`}>
-        Done
+        {t('common.done')}
       </button>
     </Dialog>
   );

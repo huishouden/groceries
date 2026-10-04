@@ -5,11 +5,13 @@ import { ErrorNotice } from '../components/ErrorNotice';
 import { Badge, Chip, Dialog, ghostButton, inputClass, primaryButton } from '../components/ui';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { useOnline, usePref } from '../lib/prefs';
-import { DIET_LABELS, householdDiets, type FoodPreferences } from '@huishouden/pwa-kit/food';
-import { MEAL_LABELS, groupMeals, heatLimit, kitchenInventory, mealIngredients, mealKey, pantryOf, plannedGroceries, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from '../data/menus';
-import type { ListItem, ShoppingList } from '../data/model';
+import { dietLabel, householdDiets, type FoodPreferences } from '@huishouden/pwa-kit/food';
+import { capitalize, formatList, getLocale } from '@huishouden/pwa-kit/i18n';
+import { t, useT } from '../i18n';
+import { groupMeals, mealLabel, mealName, mealPrep, heatLimit, kitchenInventory, mealIngredients, mealKey, pantryOf, plannedGroceries, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from '../data/menus';
+import { listName, type ListItem, type ShoppingList } from '../data/model';
 import { PLAN_TYPES, firstFreeDay, type PlanType, type PlannedMeal } from '../data/mealPlan';
-import { WEEKDAYS, daysBetween, relativeDay, shortDate, toYmd, weekday, ymdToTime, type Ymd } from '@huishouden/pwa-kit/time';
+import { daysBetween, formatDayShort, relativeDay, toYmd, ymdToTime, type Ymd } from '@huishouden/pwa-kit/time';
 
 interface Props {
   lists: ShoppingList[];
@@ -44,6 +46,7 @@ const MIN_INGREDIENTS = 3;
  * lists, so a week can be planned before shopping, within the household's diets.
  */
 export function MealsView({ lists, items, menus, favorites, food, suggest, onSave, onDelete, onSaveFavorite, onRemoveFavorite, onAddItems, planWeek, plan, onPlan, onUnplan, readOnly = false }: Props) {
+  const t = useT();
   const [planning, setPlanning] = useState<Meal | null>(null);
   const bought = useMemo(() => kitchenInventory(items, lists, Date.now()), [items, lists]);
   const planned = useMemo(() => plannedGroceries(items, lists).filter((p) => !bought.some((b) => b.toLowerCase() === p.toLowerCase())), [items, lists, bought]);
@@ -95,7 +98,7 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
         meal={meal}
         label={label}
         saved={savedIds.has(mealKey(meal))}
-        listName={groceries?.name}
+        listName={groceries ? listName(groceries) : undefined}
         sources={mealIngredients(meal, ctx)}
         reflux={reflux}
         onToggleSaved={readOnly ? undefined : () => toggleFavorite(meal)}
@@ -103,8 +106,8 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
         onPlan={readOnly || meal.type === 'snack' ? undefined : () => setPlanning(meal)}
         onAddExtras={(names) => {
           if (!groceries) return;
-          onAddItems(groceries.id, names, `for ${meal.name}`);
-          setNotice(`Added ${names.length} ${names.length === 1 ? 'item' : 'items'} to ${groceries.name}`);
+          onAddItems(groceries.id, names, t('meals.forMeal', { meal: mealName(meal) }));
+          setNotice(t('meals.addedTo', { count: names.length, list: listName(groceries) }));
         }}
       />
     );
@@ -138,52 +141,50 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
     <div className="mx-auto grid max-w-4xl gap-6 p-4 sm:p-6">
       {readOnly ? (
         <section className="grid gap-1 rounded-3xl bg-surface p-4 sm:p-5">
-          <h1 className="text-2xl font-bold">Meals</h1>
-          <p className="text-sm text-muted">Only admins and members can suggest, save and plan meals.</p>
+          <h1 className="text-2xl font-bold">{t('modes.meals')}</h1>
+          <p className="text-sm text-muted">{t('meals.readOnly')}</p>
         </section>
       ) : (
       <section className="grid gap-3 rounded-3xl bg-surface p-4 sm:p-5">
         <div>
-          <h1 className="text-2xl font-bold">What can we make?</h1>
-          <p className="text-sm text-muted">
-            From what you have (bought in the last 10 days) and what's still on your lists. Tap anything used up or not wanted.
-          </p>
+          <h1 className="text-2xl font-bold">{t('meals.title')}</h1>
+          <p className="text-sm text-muted">{t('meals.intro')}</p>
           {strictDiets.length > 0 && (
             <p className="mt-1 text-sm font-medium text-link">
-              Every idea fits {whoHas(people, (d) => isStrict(d)).join(', ')}
+              {t('meals.fits', { who: formatList(whoHas(people, (d) => isStrict(d))) })}
             </p>
           )}
           {heat && heat.max < 3 && (
             <p className="mt-1 text-sm font-medium text-link">
-              {heat.max === 0 ? 'No spicy ideas' : heat.max === 1 ? 'Only a little heat' : 'At most medium heat'}, for {heat.who}
+              {t('meals.heat', { max: heat.max, who: heat.who })}
             </p>
           )}
           {gentleDiets.length > 0 && (
             <p className="mt-1 text-sm text-muted">
-              Gentler ideas first for {whoHas(people, (d) => !isStrict(d), true).join(', ')}; each shows how hot, acidic, rich and sweet it is.
+              {t('meals.gentle', { who: formatList(whoHas(people, (d) => !isStrict(d), true)) })}
             </p>
           )}
         </div>
-        {bought.length + extras.length > 0 && <h2 className="text-sm font-semibold text-muted">Have</h2>}
-        <div className="flex flex-wrap gap-2" aria-label="Ingredients">
+        {bought.length + extras.length > 0 && <h2 className="text-sm font-semibold text-muted">{t('meals.have')}</h2>}
+        <div className="flex flex-wrap gap-2" aria-label={t('meals.ingredients')}>
           {bought.map((name) => (
             <Chip key={name} active={!usedUp.has(name)} onClick={() => toggle(name)}>
               <span className={usedUp.has(name) ? 'line-through' : ''}>{name}</span>
             </Chip>
           ))}
           {extras.map((name) => (
-            <Chip key={`extra-${name}`} active label={`Remove ${name}`} onClick={() => setExtras(extras.filter((e) => e !== name))}>
+            <Chip key={`extra-${name}`} active label={t('meals.removeIngredient', { name })} onClick={() => setExtras(extras.filter((e) => e !== name))}>
               {name} <X size={12} className="ml-0.5 inline" aria-hidden />
             </Chip>
           ))}
           {bought.length === 0 && extras.length === 0 && planned.length === 0 && (
-            <p className="text-sm text-muted">Nothing bought recently or on a food list. Add ingredients below.</p>
+            <p className="text-sm text-muted">{t('meals.nothing')}</p>
           )}
         </div>
         {planned.length > 0 && (
           <>
-            <h2 className="text-sm font-semibold text-muted">On the list</h2>
-            <div className="flex flex-wrap gap-2" aria-label="On the list">
+            <h2 className="text-sm font-semibold text-muted">{t('meals.onList')}</h2>
+            <div className="flex flex-wrap gap-2" aria-label={t('meals.onList')}>
               {planned.map((name) => (
                 <Chip key={`list-${name}`} active={!usedUp.has(name)} onClick={() => toggle(name)}>
                   <span className={usedUp.has(name) ? 'line-through' : ''}>{name}</span>
@@ -201,21 +202,21 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
             setExtra('');
           }}
         >
-          <input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="Also have… (e.g. bread)" className={inputClass} aria-label="Extra ingredient" />
-          <button type="submit" className={ghostButton} aria-label="Add ingredient" disabled={!extra.trim()}>
+          <input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder={t('meals.extraPlaceholder')} className={inputClass} aria-label={t('meals.extra')} />
+          <button type="submit" className={ghostButton} aria-label={t('meals.addIngredient')} disabled={!extra.trim()}>
             <Plus size={18} />
           </button>
         </form>
         <button onClick={() => void run()} disabled={busy || !online || available.length < MIN_INGREDIENTS} className={`${primaryButton} py-3 text-lg`}>
           {busy ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-          {busy ? 'Thinking up meals… usually 10–30 seconds' : 'Suggest meals'}
+          {busy ? t('meals.thinking') : t('meals.suggest')}
         </button>
-        {available.length < MIN_INGREDIENTS && <p className="text-sm text-muted">Needs at least {MIN_INGREDIENTS} ingredients.</p>}
+        {available.length < MIN_INGREDIENTS && <p className="text-sm text-muted">{t('meals.needs', { count: MIN_INGREDIENTS })}</p>}
         {!online && !error && <ErrorNotice error={friendlyError(new Error('offline'), 'meals', false)} />}
         {error && <ErrorNotice error={error} retrying={busy} onRetry={online ? () => void run() : undefined} />}
         {dropped.length > 0 && (
           <p className="text-sm text-muted" role="status">
-            Left out {dropped.length === 1 ? '1 idea' : `${dropped.length} ideas`} that didn't fit: {dropped.map((d) => `${d.name} (${d.reason})`).join('; ')}.
+            {t('meals.leftOut', { count: dropped.length, ideas: dropped.map((d) => `${d.name} (${d.reason})`).join('; ') })}
           </p>
         )}
       </section>
@@ -224,32 +225,35 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
       <WeekPlan days={planWeek} plan={plan} onUnplan={readOnly ? undefined : (day, type) => onUnplan(day, type).catch((e: unknown) => setSaveError(friendlyError(e, 'save')))} />
 
       {shown && (
-        <section className="grid gap-4" aria-label="Meal ideas">
+        <section className="grid gap-4" aria-label={t('meals.ideas')}>
           <div className="flex flex-wrap items-center gap-2">
             <div className="min-w-0 flex-1">
               <select
                 value={shown.id}
                 onChange={(e) => setSelectedId(e.target.value)}
                 className={inputClass}
-                aria-label="Saved meal ideas"
+                aria-label={t('meals.saved')}
               >
                 {menus.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {new Date(m.createdAt).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {m.createdBy} ·{' '}
-                    {m.meals.length} ideas
+                    {t('meals.savedOption', {
+                      when: new Date(m.createdAt).toLocaleString(getLocale(), { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+                      who: m.createdBy,
+                      count: m.meals.length,
+                    })}
                   </option>
                 ))}
               </select>
             </div>
             {!readOnly && (
-              <button onClick={() => onDelete(shown.id)} className={`${ghostButton} text-stone-400`} aria-label="Delete these ideas">
+              <button onClick={() => onDelete(shown.id)} className={`${ghostButton} text-stone-400`} aria-label={t('meals.deleteIdeas')}>
                 <Trash2 size={18} />
               </button>
             )}
           </div>
           {groupMeals(shown.meals, reflux).map(([type, meals]) => (
             <div key={type}>
-              <h2 className="mb-2 text-sm font-semibold tracking-wider text-muted uppercase">{MEAL_LABELS[type]}</h2>
+              <h2 className="mb-2 text-sm font-semibold tracking-wider text-muted uppercase">{mealLabel(type)}</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{meals.map((meal) => card(meal, meal.name))}</div>
             </div>
           ))}
@@ -259,19 +263,19 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
       {saveError && <ErrorNotice error={saveError} />}
 
       {favorites.length > 0 && (
-        <section className="grid gap-3" aria-label="Favorites">
+        <section className="grid gap-3" aria-label={t('meals.favorites')}>
           <h2>
             <button
               onClick={() => setFavoritesOpen(!favoritesOpen)}
               aria-expanded={favoritesOpen}
               className="flex w-full items-center gap-2 text-left text-sm font-semibold tracking-wider text-muted uppercase"
             >
-              <Star size={16} className="fill-terracotta text-terracotta" /> Favorites ({favorites.length})
+              <Star size={16} className="fill-terracotta text-terracotta" /> {t('meals.favoritesCount', { count: favorites.length })}
               <ChevronDown size={16} className={`ml-auto transition ${favoritesOpen ? 'rotate-180' : ''}`} />
             </button>
           </h2>
           {favoritesOpen && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{favorites.map((f) => card(f.meal, f.id, MEAL_LABELS[f.meal.type]))}</div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{favorites.map((f) => card(f.meal, f.id, mealLabel(f.meal.type)))}</div>
           )}
         </section>
       )}
@@ -285,8 +289,8 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
           recentlyBought={bought.filter((b) => !usedUp.has(b))}
           pantry={pantry}
           onAdd={(names) => {
-            onAddItems(groceries.id, names, `for ${adding.name}`);
-            setNotice(`Added ${names.length} ${names.length === 1 ? 'item' : 'items'} to ${groceries.name}`);
+            onAddItems(groceries.id, names, t('meals.forMeal', { meal: mealName(adding) }));
+            setNotice(t('meals.addedTo', { count: names.length, list: listName(groceries) }));
             setAdding(null);
           }}
           onClose={() => setAdding(null)}
@@ -302,7 +306,7 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
             const meal = planning;
             setPlanning(null);
             onPlan(day, type, meal)
-              .then(() => setNotice(`Planned for ${dayName(day)} ${type}`))
+              .then(() => setNotice(t('meals.planned', { day: dayName(day), meal: mealLabel(type).toLocaleLowerCase(getLocale()) })))
               .catch((e: unknown) => setSaveError(friendlyError(e, 'save')));
           }}
           onClose={() => setPlanning(null)}
@@ -349,6 +353,8 @@ function MealCard({
   onPlan?: () => void;
   onAddExtras: (names: string[]) => void;
 }) {
+  const t = useT();
+  const name = mealName(meal);
   const row = (title: string, names: string[]) =>
     names.length > 0 && (
       <p>
@@ -361,29 +367,29 @@ function MealCard({
       <div className="mb-2 flex items-start gap-1">
         <div className="min-w-0 flex-1">
           {label && <p className="text-xs font-semibold tracking-wider text-muted uppercase">{label}</p>}
-          <h3 className="font-semibold">{meal.name}</h3>
+          <h3 className="font-semibold">{name}</h3>
         </div>
         {onToggleSaved && (
           <button
             onClick={onToggleSaved}
             aria-pressed={saved}
-            aria-label={saved ? `Remove ${meal.name} from favorites` : `Save ${meal.name} to favorites`}
-            title={saved ? 'Remove from favorites' : 'Save to favorites'}
+            aria-label={saved ? t('meals.unsaveMeal', { meal: name }) : t('meals.saveMeal', { meal: name })}
+            title={saved ? t('meals.unsave') : t('meals.save')}
             className={`${iconButton} ${saved ? 'text-terracotta' : 'text-stone-400'}`}
           >
             <Star size={18} className={saved ? 'fill-current' : ''} />
           </button>
         )}
         {onPlan && (
-          <button onClick={onPlan} aria-label={`Plan ${meal.name}`} title="Plan for a day this week" className={`${iconButton} text-stone-400`}>
+          <button onClick={onPlan} aria-label={t('meals.planMeal', { meal: name })} title={t('meals.planHint')} className={`${iconButton} text-stone-400`}>
             <CalendarPlus size={18} />
           </button>
         )}
         {listName && (
           <button
             onClick={onAdd}
-            aria-label={`Add ingredients for ${meal.name} to ${listName}`}
-            title={`Add ingredients to ${listName}`}
+            aria-label={t('meals.addIngredientsFor', { meal: name, list: listName })}
+            title={t('meals.addIngredientsTo', { list: listName })}
             className={`${iconButton} text-stone-400`}
           >
             <ListPlus size={18} />
@@ -392,18 +398,18 @@ function MealCard({
       </div>
       <MealBadges meal={meal} reflux={reflux} />
       <div className="mb-2 grid gap-0.5 text-sm text-muted">
-        {row('Have', sources.have)}
-        {row('On the list', sources.list)}
+        {row(t('meals.have'), sources.have)}
+        {row(t('meals.onList'), sources.list)}
         {sources.extra.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-2">
-            {row('To get', sources.extra)}
+            {row(t('meals.toGet'), sources.extra)}
             {listName && (
               <button
                 onClick={() => onAddExtras(sources.extra)}
                 className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 font-medium text-link hover:bg-tint"
-                aria-label={`Add ${sources.extra.join(', ')} to ${listName}`}
+                aria-label={t('meals.addExtras', { items: formatList(sources.extra), list: listName })}
               >
-                <ListPlus size={16} /> Add to list
+                <ListPlus size={16} /> {t('meals.addToList')}
               </button>
             )}
           </div>
@@ -413,7 +419,7 @@ function MealCard({
         {meal.parts.map((part, i) => (
           <li key={i}>
             <span className="font-medium">{sentenceCase(part.ingredients.join(', '))}</span>
-            <span className="text-muted"> · {part.prep}</span>
+            <span className="text-muted"> · {mealPrep(meal, i)}</span>
           </li>
         ))}
       </ul>
@@ -421,12 +427,17 @@ function MealCard({
   );
 }
 
-/** "Today", "Tomorrow", "Wed, Jan 8", from the kit's day helpers. */
+/** "Today", "Tomorrow", "Wed, Jan 8" ("Mié, 8 ene"), from the kit's day helpers. */
 function dayName(day: Ymd, now: number = Date.now()): string {
-  const today = toYmd(now);
-  const ahead = daysBetween(today, day);
+  const ahead = daysBetween(toYmd(now), day);
   if (ahead === 0 || ahead === 1) return relativeDay(ymdToTime(day), now);
-  return `${WEEKDAYS[weekday(day)].slice(0, 3)}, ${shortDate(day, today)}`;
+  return capitalize(formatDayShort(ymdToTime(day)));
+}
+
+/** The day mid-sentence: "today", "tomorrow" lowercase; a date as `dayName`. */
+function dayInline(day: Ymd, now: number = Date.now()): string {
+  const ahead = daysBetween(toYmd(now), day);
+  return ahead === 0 || ahead === 1 ? dayName(day, now).toLocaleLowerCase(getLocale()) : dayName(day, now);
 }
 
 /**
@@ -436,23 +447,23 @@ function dayName(day: Ymd, now: number = Date.now()): string {
 function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; onUnplan?: (day: Ymd, type: PlanType) => Promise<void> }) {
   if (plan.length === 0) {
     return (
-      <section aria-label="This week" className="rounded-2xl border border-dashed border-line p-4 text-sm text-muted">
-        <h2 className="mb-1 font-semibold text-ink-soft">This week</h2>
-        Nothing planned yet. Use the calendar button on an idea to plan it for a day.
+      <section aria-label={t('meals.week')} className="rounded-2xl border border-dashed border-line p-4 text-sm text-muted">
+        <h2 className="mb-1 font-semibold text-ink-soft">{t('meals.week')}</h2>
+        {t('meals.weekEmpty')}
       </section>
     );
   }
   const slot = (day: Ymd, type: PlanType) => {
     const p = plan.find((x) => x.day === day && x.type === type);
-    if (!p) return <span className="text-muted" aria-label="Nothing planned">–</span>;
+    if (!p) return <span className="text-muted" aria-label={t('meals.nothingPlanned')}>–</span>;
     return (
       <span className="flex items-center gap-1">
-        <span className="min-w-0 flex-1">{p.name}</span>
+        <span className="min-w-0 flex-1">{mealName({ name: p.name, local: p.meal?.local })}</span>
         {onUnplan && (
           <button
             onClick={() => void onUnplan(day, type)}
             className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-100 dark:hover:bg-forest-700"
-            aria-label={`Remove ${p.name} from ${dayName(day)} ${type}`}
+            aria-label={t('meals.unplan', { meal: mealName({ name: p.name, local: p.meal?.local }), day: dayName(day), slot: mealLabel(type).toLocaleLowerCase(getLocale()) })}
           >
             <X size={16} aria-hidden />
           </button>
@@ -461,19 +472,19 @@ function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; 
     );
   };
   return (
-    <section aria-label="This week" className="grid gap-2">
-      <h2 className="text-sm font-semibold tracking-wider text-muted uppercase">This week</h2>
+    <section aria-label={t('meals.week')} className="grid gap-2">
+      <h2 className="text-sm font-semibold tracking-wider text-muted uppercase">{t('meals.week')}</h2>
       {/* Tablet and up: a table, days down, meals across. */}
       <table className="hidden w-full table-fixed overflow-hidden rounded-2xl border border-stone-200 bg-surface text-left text-sm sm:table dark:border-forest-700">
-        <caption className="sr-only">This week</caption>
+        <caption className="sr-only">{t('meals.week')}</caption>
         <thead className="text-muted">
           <tr>
             <th scope="col" className="w-36 px-3 py-2 font-medium">
-              <span className="sr-only">Day</span>
+              <span className="sr-only">{t('meals.day')}</span>
             </th>
-            {PLAN_TYPES.map((t) => (
-              <th key={t} scope="col" className="px-3 py-2 font-medium">
-                {MEAL_LABELS[t]}
+            {PLAN_TYPES.map((type) => (
+              <th key={type} scope="col" className="px-3 py-2 font-medium">
+                {mealLabel(type)}
               </th>
             ))}
           </tr>
@@ -484,9 +495,9 @@ function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; 
               <th scope="row" className="px-3 py-2 font-semibold">
                 {dayName(day)}
               </th>
-              {PLAN_TYPES.map((t) => (
-                <td key={t} className="px-3 py-1 align-middle">
-                  {slot(day, t)}
+              {PLAN_TYPES.map((type) => (
+                <td key={type} className="px-3 py-1 align-middle">
+                  {slot(day, type)}
                 </td>
               ))}
             </tr>
@@ -501,10 +512,10 @@ function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; 
             <li key={day} className="rounded-2xl border border-stone-200 bg-surface p-3 dark:border-forest-700">
               <h3 className="mb-1 text-sm font-semibold">{dayName(day)}</h3>
               <dl className="grid gap-1 text-sm">
-                {PLAN_TYPES.filter((t) => plan.some((p) => p.day === day && p.type === t)).map((t) => (
-                  <div key={t} className="flex items-center gap-2">
-                    <dt className="w-20 shrink-0 text-muted">{MEAL_LABELS[t]}</dt>
-                    <dd className="min-w-0 flex-1">{slot(day, t)}</dd>
+                {PLAN_TYPES.filter((type) => plan.some((p) => p.day === day && p.type === type)).map((type) => (
+                  <div key={type} className="flex items-center gap-2">
+                    <dt className="w-20 shrink-0 text-muted">{mealLabel(type)}</dt>
+                    <dd className="min-w-0 flex-1">{slot(day, type)}</dd>
                   </div>
                 ))}
               </dl>
@@ -522,29 +533,29 @@ function PlanDialog({ meal, days, plan, onPlan, onClose }: { meal: Meal; days: Y
   const [day, setDay] = useState<Ymd>(() => firstFreeDay(days, plan, initialType));
   const taken = plan.find((p) => p.day === day && p.type === type);
   return (
-    <Dialog title={`Plan ${meal.name}`} onClose={onClose}>
+    <Dialog title={t('meals.planMeal', { meal: mealName(meal) })} onClose={onClose}>
       <div className="grid gap-3">
-        <div role="group" aria-label="Meal" className="flex flex-wrap gap-2">
-          {PLAN_TYPES.map((t) => (
-            <Chip key={t} active={type === t} onClick={() => setType(t)}>
-              {MEAL_LABELS[t]}
+        <div role="group" aria-label={t('meals.meal')} className="flex flex-wrap gap-2">
+          {PLAN_TYPES.map((pt) => (
+            <Chip key={pt} active={type === pt} onClick={() => setType(pt)}>
+              {mealLabel(pt)}
             </Chip>
           ))}
         </div>
-        <div role="group" aria-label="Day" className="flex flex-wrap gap-2">
+        <div role="group" aria-label={t('meals.day')} className="flex flex-wrap gap-2">
           {days.map((d) => (
             <Chip key={d} active={day === d} onClick={() => setDay(d)}>
               {dayName(d)}
             </Chip>
           ))}
         </div>
-        {taken && <p className="text-sm text-muted">Replaces {taken.name}.</p>}
+        {taken && <p className="text-sm text-muted">{t('meals.replaces', { meal: mealName({ name: taken.name, local: taken.meal?.local }) })}</p>}
         <div className="mt-1 flex justify-end gap-2">
           <button onClick={onClose} className={ghostButton}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button onClick={() => onPlan(day, type)} className={primaryButton}>
-            Plan for {dayName(day).toLowerCase() === 'today' || dayName(day).toLowerCase() === 'tomorrow' ? dayName(day).toLowerCase() : dayName(day)}
+            {t('meals.planFor', { day: dayInline(day) })}
           </button>
         </div>
       </div>
@@ -555,19 +566,23 @@ function PlanDialog({ meal, days, plan, onPlan, onClose }: { meal: Meal; days: Y
 /** "Alex (vegetarian, pregnant)", or with `possessive`, "Alex's GERD (reflux)": who has which diets. */
 function whoHas(people: FoodPreferences['people'], keep: (d: FoodPreferences['people'][number]['diets'][number]) => boolean, possessive = false): string[] {
   return people
-    .map((p) => ({ name: p.name, diets: p.diets.filter(keep).map((d) => DIET_LABELS[d]) }))
+    .map((p) => ({ name: p.name, diets: p.diets.filter(keep).map((d) => dietLabel(d)) }))
     .filter((p) => p.diets.length)
-    .map((p) => (possessive ? `${p.name}'s ${p.diets.join(' and ')}` : `${p.name} (${p.diets.map((d) => d.toLowerCase()).join(', ')})`));
+    .map((p) =>
+      possessive
+        ? t('meals.whoPossessive', { name: p.name, diets: formatList(p.diets) })
+        : t('diet.who', { name: p.name, diet: formatList(p.diets.map((d) => d.toLowerCase())) }),
+    );
 }
 
 /** One wording for what is shown and what is read out. */
-const HEAT_WORDS = ['A little spicy', 'Spicy', 'Very spicy'];
+const HEAT_WORDS = ['level.heat1', 'level.heat2', 'level.heat3'] as const;
 
-const LEVEL_WORDS: Record<Exclude<keyof MealLevels, 'heat'>, [string, string, string]> = {
-  acidity: ['A little acidic', 'Acidic', 'Very acidic'],
-  richness: ['A little rich', 'Rich', 'Fried or greasy'],
-  sweetness: ['A little sweet', 'Sweet', 'Very sweet'],
-};
+const LEVEL_WORDS = {
+  acidity: ['level.acidity1', 'level.acidity2', 'level.acidity3'],
+  richness: ['level.richness1', 'level.richness2', 'level.richness3'],
+  sweetness: ['level.sweetness1', 'level.sweetness2', 'level.sweetness3'],
+} as const satisfies Record<Exclude<keyof MealLevels, 'heat'>, readonly [string, string, string]>;
 
 /**
  * What a menu would print beside a dish: Vegetarian or Vegan, flames for heat, and words for
@@ -578,14 +593,15 @@ function MealBadges({ meal, reflux }: { meal: Meal; reflux: boolean }) {
   const tags = dietTags(meal);
   const icons = { acidity: Citrus, richness: Droplet, sweetness: Candy } as const;
   const words = (Object.keys(LEVEL_WORDS) as (keyof typeof LEVEL_WORDS)[]).filter((k) => levels[k] > 0);
-  const heat = HEAT_WORDS[levels.heat - 1];
+  const heatKey = HEAT_WORDS[levels.heat - 1];
+  const heat = heatKey ? t(heatKey) : undefined;
   if (!tags.length && !levels.heat && !words.length && !reflux) return null;
   return (
-    <ul className="mb-2 flex flex-wrap gap-1.5" aria-label={`About ${meal.name}`}>
-      {reflux && gentleOnReflux(levels) && <Badge tone="forest">Gentle on reflux</Badge>}
-      {tags.map((t) => (
-        <Badge key={t}>
-          <Leaf size={12} aria-hidden /> {t}
+    <ul className="mb-2 flex flex-wrap gap-1.5" aria-label={t('meals.about', { meal: mealName(meal) })}>
+      {reflux && gentleOnReflux(levels) && <Badge tone="forest">{t('level.gentle')}</Badge>}
+      {tags.map((tag) => (
+        <Badge key={tag}>
+          <Leaf size={12} aria-hidden /> {tag}
         </Badge>
       ))}
       {heat && (
@@ -600,7 +616,7 @@ function MealBadges({ meal, reflux }: { meal: Meal; reflux: boolean }) {
         const Icon = icons[k];
         return (
           <Badge key={k}>
-            <Icon size={12} aria-hidden /> {LEVEL_WORDS[k][Math.min(levels[k], 3) - 1]}
+            <Icon size={12} aria-hidden /> {t(LEVEL_WORDS[k][Math.min(levels[k], 3) - 1])}
           </Badge>
         );
       })}
@@ -632,21 +648,22 @@ function AddIngredientsDialog({
 }) {
   // Computed once on open, so the ticks don't shift if the list changes while choosing. What is
   // neither listed nor bought is ticked.
+  const t = useT();
   const [choices, setChoices] = useState(() => {
     const s = mealIngredients(meal, { have: recentlyBought, onList, pantry });
     return [
-      ...s.extra.map((name) => ({ name, selected: true, note: null as string | null })),
-      ...s.list.map((name) => ({ name, selected: false, note: 'on list' })),
-      ...s.have.map((name) => ({ name, selected: false, note: 'bought recently' })),
+      ...s.extra.map((name) => ({ name, selected: true, note: null as 'meals.noteOnList' | 'meals.noteBought' | null })),
+      ...s.list.map((name) => ({ name, selected: false, note: 'meals.noteOnList' as const })),
+      ...s.have.map((name) => ({ name, selected: false, note: 'meals.noteBought' as const })),
     ];
   });
   const idPrefix = useId();
   const picked = choices.filter((c) => c.selected).map((c) => c.name);
   return (
-    <Dialog title={`Add to ${list.name}`} onClose={onClose}>
-      <p className="mb-3 text-sm text-muted">For {meal.name}</p>
+    <Dialog title={t('googleTasks.addTo', { list: listName(list) })} onClose={onClose}>
+      <p className="mb-3 text-sm text-muted">{t('meals.forMealTitle', { meal: mealName(meal) })}</p>
       {choices.length === 0 ? (
-        <p className="text-sm text-muted">Nothing to buy: this meal uses only kitchen basics.</p>
+        <p className="text-sm text-muted">{t('meals.onlyBasics')}</p>
       ) : (
         <ul className="grid gap-1">
           {choices.map((c, i) => (
@@ -663,7 +680,7 @@ function AddIngredientsDialog({
               </label>
               {c.note && (
                 <span id={`${idPrefix}-${i}`} className="text-xs text-muted">
-                  {c.note}
+                  {t(c.note)}
                 </span>
               )}
             </li>
@@ -672,10 +689,10 @@ function AddIngredientsDialog({
       )}
       <div className="mt-4 flex justify-end gap-2">
         <button onClick={onClose} className={ghostButton}>
-          Cancel
+          {t('common.cancel')}
         </button>
         <button onClick={() => onAdd(picked)} disabled={picked.length === 0} className={primaryButton}>
-          {picked.length === 1 ? 'Add 1 item' : `Add ${picked.length} items`}
+          {t('meals.addItems', { count: picked.length })}
         </button>
       </div>
     </Dialog>

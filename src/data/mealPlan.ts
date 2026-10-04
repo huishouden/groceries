@@ -1,8 +1,9 @@
 import { collection, doc, query, where, type Firestore } from 'firebase/firestore';
 import { writeBatch } from '@huishouden/pwa-kit/firestore';
-import { agendaDoc, agendaId, allDayStart, type AgendaInput } from '@huishouden/pwa-kit/agenda';
+import { agendaDoc, agendaId, allDayStart, localizeAgenda, type AgendaInput } from '@huishouden/pwa-kit/agenda';
 import { addDays, toYmd, type Ymd } from '@huishouden/pwa-kit/time';
-import type { Meal } from './menus';
+import { mealName, type Meal } from './menus';
+import { t } from '../i18n';
 import { appLink } from '../lib/appLink';
 
 /** The app that owns planned dinners on the household agenda (publish.ts APP). */
@@ -50,8 +51,9 @@ const agendaCollection = (db: Firestore, householdId: string) => collection(db, 
 const dinnerAgendaId = (day: Ymd) => agendaId(AGENDA_APP, agendaRef(day), allDayStart(day));
 
 /** What a planned dinner publishes: an all-day "Dinner: <meal>" linking to Meals. */
-export function dinnerAgenda(planned: Pick<PlannedMeal, 'day' | 'name'>): AgendaInput {
-  return { ref: agendaRef(planned.day), kind: 'other', title: `Dinner: ${planned.name}`.slice(0, 120), start: allDayStart(planned.day), allDay: true, url: MEALS_URL };
+export function dinnerAgenda(planned: Pick<PlannedMeal, 'day' | 'name'> & { meal?: Pick<Meal, 'name' | 'local'> }): AgendaInput {
+  const name = planned.meal ? mealName({ name: planned.name, local: planned.meal.local }) : planned.name;
+  return { ref: agendaRef(planned.day), kind: 'other', title: t('agenda.dinner', { meal: name }).slice(0, 120), start: allDayStart(planned.day), allDay: true, url: MEALS_URL };
 }
 
 /**
@@ -63,7 +65,9 @@ export async function planMeal(db: Firestore, householdId: string, day: Ymd, typ
   const batch = writeBatch(db);
   batch.set(doc(planCollection(db, householdId), slotId(day, type)), planned);
   if (type === 'dinner') {
-    const entry = agendaDoc(AGENDA_APP, dinnerAgenda({ day, name: meal.name }), by);
+    // Read on every member's device: written in every language (docs/i18n.md step 8).
+    const [input] = await localizeAgenda(() => [dinnerAgenda({ day, name: meal.name, meal })]);
+    const entry = agendaDoc(AGENDA_APP, input, by);
     batch.set(doc(agendaCollection(db, householdId), dinnerAgendaId(day)), entry);
   }
   await batch.commit();

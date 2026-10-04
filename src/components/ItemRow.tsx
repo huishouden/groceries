@@ -2,7 +2,8 @@ import { useState, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { Check, Pencil, Search, Signpost, Trash2, Zap } from 'lucide-react';
 import { aisleLabel } from '../data/stores';
 import type { StoreLink } from '../data/chains';
-import { URGENCY, type ListItem } from '../data/model';
+import { URGENCY, categoryLabel, type ListItem } from '../data/model';
+import { useT } from '../i18n';
 
 interface Props {
   item: ListItem;
@@ -47,13 +48,14 @@ export interface DragProps {
 }
 
 export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory, drag, aisle, onAisle, onDismissAisle, findAt }: Props) {
+  const t = useT();
   const [editingAisle, setEditingAisle] = useState(false);
   const showAisleInput = !!onAisle && editingAisle;
   const urgent = item.urgency === URGENCY.URGENT && !item.completed;
   const details = [
     item.quantity && item.quantity !== '1' ? item.quantity : null,
     item.notes || null,
-    showCategory ? item.category : null,
+    showCategory ? categoryLabel(item.category) : null,
   ].filter(Boolean);
   return (
     <li
@@ -66,7 +68,7 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
       {drag?.handle}
       <button
         onClick={onToggle}
-        aria-label={item.completed ? `Mark ${item.name} not done` : `Mark ${item.name} done`}
+        aria-label={item.completed ? t('item.markNotDone', { name: item.name }) : t('item.markDone', { name: item.name })}
         className={`flex shrink-0 items-center justify-center rounded-full border-2 transition ${large ? 'h-10 w-10' : 'h-8 w-8'} ${
           item.completed
             ? 'border-forest-500 bg-forest-500 text-white'
@@ -78,10 +80,10 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
       <div className="min-w-0 flex-1">
         <button onClick={onEdit ?? onToggle} className="block w-full text-left">
           <span className={`${large ? 'text-xl' : 'text-base'} ${item.completed ? 'line-through' : ''}`}>
-            <span className="font-medium [overflow-wrap:anywhere]">{item.name}</span>
+            <span className="font-medium [overflow-wrap:anywhere]" translate="no">{item.name}</span>
             {urgent && (
               <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-attention-tint px-2 py-0.5 align-middle text-xs font-semibold text-attention">
-                <Zap size={12} /> Today
+                <Zap size={12} /> {t('item.today')}
               </span>
             )}
           </span>
@@ -89,7 +91,7 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
             <span className={`block text-muted [overflow-wrap:anywhere] ${large ? 'text-base' : 'text-sm'}`}>
               {details.join(' · ')}
               {details.length > 0 && item.addedBy ? ' · ' : ''}
-              {item.addedBy}
+              <span translate="no">{item.addedBy}</span>
             </span>
           )}
         </button>
@@ -114,7 +116,7 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
               <button
                 onClick={() => setEditingAisle(true)}
                 className={`inline-flex items-center gap-1 rounded-full bg-tint px-2 py-0.5 font-medium text-forest-700 dark:text-forest-100 ${large ? 'text-base' : 'text-sm'}`}
-                aria-label={`${aisleLabel(aisle)}. Change where ${item.name} is`}
+                aria-label={t('aisle.change', { aisle: aisleLabel(aisle), name: item.name })}
               >
                 <Signpost size={14} /> {aisleLabel(aisle)}
               </button>
@@ -124,12 +126,12 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
         )}
       </div>
       {onEdit && (
-        <button onClick={onEdit} className="hidden shrink-0 rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700 sm:block dark:hover:bg-forest-700 dark:hover:text-stone-200" aria-label={`Edit ${item.name}`}>
+        <button onClick={onEdit} className="hidden shrink-0 rounded-lg p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700 sm:block dark:hover:bg-forest-700 dark:hover:text-stone-200" aria-label={t('item.edit', { name: item.name })}>
           <Pencil size={18} />
         </button>
       )}
       {onDelete && (
-        <button onClick={onDelete} className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-300" aria-label={`Delete ${item.name}`}>
+        <button onClick={onDelete} className="shrink-0 rounded-lg p-2 text-stone-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-300" aria-label={t('item.delete', { name: item.name })}>
           <Trash2 size={18} />
         </button>
       )}
@@ -139,22 +141,24 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
 
 /** Opens the store's own search for the item; once its aisle is known it steps back. */
 export function FindAtLink({ link, itemName, secondary, large }: { link: StoreLink; itemName: string; secondary?: boolean; large?: boolean }) {
+  const t = useT();
   return (
     <a
       href={link.url}
       target="_blank"
       rel="noreferrer"
-      aria-label={link.storeSite ? `Find ${itemName} at ${link.store}` : `Search the web for ${itemName} at ${link.store}`}
+      aria-label={link.storeSite ? t('findAt.label', { name: itemName, store: link.store }) : t('findAt.webLabel', { name: itemName, store: link.store })}
       className={`inline-flex max-w-full min-w-0 items-center gap-1 underline-offset-2 hover:underline ${large ? 'text-base' : 'text-sm'} ${
         secondary ? 'text-muted' : 'font-medium text-link'
       }`}
     >
-      <Search size={14} className="shrink-0" /> <span className="truncate">Find at {link.store}</span>
+      <Search size={14} className="shrink-0" /> <span className="truncate">{t('findAt.text', { store: link.store })}</span>
     </a>
   );
 }
 
 function AisleInput({ itemName, initial, correcting, onSave, onCancel }: { itemName: string; initial: string; correcting: boolean; onSave: (v: string) => void; onCancel: () => void }) {
+  const t = useT();
   const [value, setValue] = useState(initial);
   return (
     <form
@@ -168,18 +172,18 @@ function AisleInput({ itemName, initial, correcting, onSave, onCancel }: { itemN
       <input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={correcting ? 'Found it in…' : 'Aisle? e.g. 12'}
-        aria-label={correcting ? `Where ${itemName} actually was` : `Aisle for ${itemName}`}
+        placeholder={correcting ? t('aisle.foundIn') : t('aisle.placeholder')}
+        aria-label={correcting ? t('aisle.whereWas', { name: itemName }) : t('aisle.for', { name: itemName })}
         inputMode="text"
         enterKeyHint="done"
         maxLength={24}
         className="w-28 min-w-0 rounded-xl border border-line bg-white px-2 py-1 text-sm outline-none focus:border-forest-500 dark:bg-forest-900"
       />
       <button type="submit" disabled={!value.trim() && !correcting} className="rounded-xl bg-primary px-2 py-1 text-sm font-medium text-on-primary disabled:opacity-40">
-        Save
+        {t('common.save')}
       </button>
       <button type="button" onClick={onCancel} className="rounded-xl px-1.5 py-1 text-sm text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
-        Cancel
+        {t('common.cancel')}
       </button>
     </form>
   );

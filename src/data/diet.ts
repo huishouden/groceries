@@ -1,4 +1,8 @@
-import { isStrict, type Diet, type FoodPreferences } from '@huishouden/pwa-kit/food';
+import { dietLabel, isStrict, type Diet, type FoodPreferences } from '@huishouden/pwa-kit/food';
+import { t } from '../i18n';
+
+/** "Alex (vegetarian)", in the reader's language. */
+const whoDiet = (name: string, diet: Diet) => t('diet.who', { name, diet: dietLabel(diet).toLowerCase() });
 import type { Meal } from './menus';
 
 /**
@@ -98,24 +102,24 @@ export function dietProblems(meal: Meal, food: Pick<FoodPreferences, 'people'>):
       const rule = RULES[diet];
       if (rule) {
         const term = find(strip(whole, rule.except), rule.terms);
-        if (term) problems.push({ who: `${person.name} (${diet})`, term });
+        if (term) problems.push({ who: whoDiet(person.name, diet), term });
       }
       if (diet === 'kosher') {
         const text = strip(whole, PLANT_MILKS);
         const meat = find(text, MEAT);
         const dairy = find(text, DAIRY);
-        if (meat && dairy) problems.push({ who: `${person.name} (kosher)`, term: `${meat} with ${dairy}` });
+        if (meat && dairy) problems.push({ who: whoDiet(person.name, 'kosher'), term: t('diet.meatWithDairy', { meat, dairy }) });
       }
       if (diet === 'pregnant') {
         for (const part of meal.parts) {
           const text = normalize([...part.ingredients, part.prep].join(' . '));
           const deli = find(text, DELI);
-          if (deli && !HEATED.test(part.prep.toLowerCase())) problems.push({ who: `${person.name} (pregnant)`, term: `${deli}, not heated` });
+          if (deli && !HEATED.test(part.prep.toLowerCase())) problems.push({ who: whoDiet(person.name, 'pregnant'), term: t('diet.notHeated', { food: deli }) });
         }
       }
     }
     const avoided = find(whole, person.avoid);
-    if (avoided) problems.push({ who: `${person.name} avoids ${avoided}`, term: avoided });
+    if (avoided) problems.push({ who: t('diet.whoAvoids', { name: person.name, food: avoided }), term: avoided });
   }
   return problems;
 }
@@ -182,7 +186,7 @@ export const levelScore = (l: MealLevels) => l.heat * 2 + l.acidity + l.richness
 /** Labels a menu would print: "Vegan" or "Vegetarian", when the meal qualifies. */
 export function dietTags(meal: Meal): string[] {
   const as = (diet: Diet) => dietProblems(meal, { people: [{ id: 't', name: 't', diets: [diet], avoid: [] }] }).length === 0;
-  if (as('vegan')) return ['Vegan'];
-  if (as('vegetarian')) return ['Vegetarian'];
+  if (as('vegan')) return [dietLabel('vegan')];
+  if (as('vegetarian')) return [dietLabel('vegetarian')];
   return [];
 }

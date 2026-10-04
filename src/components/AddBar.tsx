@@ -5,13 +5,16 @@ import {
   ALL_URGENCIES,
   CATEGORIES,
   URGENCY,
+  categoryLabel,
   matchSuggestions,
+  urgencyLabel,
   type Category,
   type ListIcon,
   type Staple,
   type Urgency,
 } from '../data/model';
 import { inputClass } from './ui';
+import { useT } from '../i18n';
 import { closeEnough, guessCategory } from '../data/categorize';
 
 export interface AddRequest {
@@ -34,6 +37,7 @@ interface Props {
 }
 
 export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon }: Props) {
+  const t = useT();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
@@ -92,17 +96,17 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
           // Delayed so a tap on a suggestion lands first; skipped if focus already came back
           // (adding an item refocuses the input right after the Add button took focus).
           onBlur={() => setTimeout(() => setFocused(document.activeElement === inputRef.current), 150)}
-          placeholder={placeholder ?? 'Add an item: milk, eggs, light bulbs…'}
+          placeholder={placeholder ?? t('add.placeholder')}
           enterKeyHint="done"
           autoComplete="off"
           className={`min-w-0 flex-1 bg-transparent px-3 outline-none ${large ? 'py-3 text-xl' : 'py-2 text-base'}`}
-          aria-label="New item"
+          aria-label={t('add.newItem')}
         />
         <button
           type="button"
           onClick={() => setShowDetails((v) => !v)}
           className={`rounded-xl p-2 text-muted hover:bg-stone-100 dark:hover:bg-forest-700 ${showDetails ? 'bg-stone-100 dark:bg-forest-700' : ''}`}
-          aria-label="More details"
+          aria-label={t('add.moreDetails')}
           aria-expanded={showDetails}
         >
           <ChevronDown size={20} className={showDetails ? 'rotate-180 transition' : 'transition'} />
@@ -112,7 +116,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
           disabled={!name.trim()}
           className={`inline-flex items-center gap-1.5 rounded-xl bg-primary font-semibold text-on-primary disabled:opacity-40 ${large ? 'px-6 py-3 text-lg' : 'px-4 py-2'}`}
         >
-          <Plus size={large ? 22 : 18} strokeWidth={2.5} /> Add
+          <Plus size={large ? 22 : 18} strokeWidth={2.5} /> {t('common.add')}
         </button>
       </form>
 
@@ -128,16 +132,16 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
               >
                 <span className="min-w-0 truncate">
                   <span className="font-medium">{s.displayName}</span>
-                  <span className="ml-2 text-sm text-muted">{s.category}</span>
+                  <span className="ml-2 text-sm text-muted">{categoryLabel(s.category)}</span>
                 </span>
-                {s.timesAdded > 0 && <span className="shrink-0 text-sm text-muted">added {s.timesAdded}×</span>}
+                {s.timesAdded > 0 && <span className="shrink-0 text-sm text-muted">{t('add.timesAdded', { count: s.timesAdded })}</span>}
               </button>
               {/* Keeps the field focused, so the list stays open for the next one. */}
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onForget(s)}
-                aria-label={`Don't suggest ${s.displayName}`}
+                aria-label={t('add.dontSuggest', { name: s.displayName })}
                 className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-forest-700 dark:hover:text-stone-200"
               >
                 <X size={18} aria-hidden="true" />
@@ -150,23 +154,25 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
       {showDetails && (
         <div className="mt-2 grid gap-2 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-2">
           <label className="text-sm text-muted">
-            Quantity
-            <input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1, 2 lbs, a dozen" className={`${inputClass} mt-1`} />
+            {t('item.quantity')}
+            <input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={t('item.quantityPlaceholder')} className={`${inputClass} mt-1`} />
           </label>
           <label className="text-sm text-muted">
-            Notes
-            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Brand, size, organic…" className={`${inputClass} mt-1`} />
+            {t('common.notes')}
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('item.notesPlaceholder')} className={`${inputClass} mt-1`} />
           </label>
           <label className="text-sm text-muted">
-            Section
+            {t('item.section')}
             <select value={effectiveCategory} onChange={(e) => setCategory(e.target.value as Category)} className={`${inputClass} mt-1`}>
               {ALL_CATEGORIES.map((c) => (
-                <option key={c}>{c}</option>
+                <option key={c} value={c}>
+                  {categoryLabel(c)}
+                </option>
               ))}
             </select>
           </label>
           <div className="text-sm text-muted">
-            When
+            {t('item.when')}
             <div className="mt-1 flex gap-1.5">
               {ALL_URGENCIES.map((u) => (
                 <button
@@ -182,7 +188,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
                   }`}
                 >
                   {u === URGENCY.URGENT && <Zap size={12} className="mr-0.5 inline" />}
-                  {u}
+                  {urgencyLabel(u)}
                 </button>
               ))}
             </div>

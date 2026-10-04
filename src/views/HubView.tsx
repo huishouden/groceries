@@ -4,7 +4,10 @@ import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableItems } from '../components/SortableItems';
 import { StaplesShelf } from '../components/StaplesShelf';
 import { ListIconBadge } from '../components/ui';
-import { sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
+import { listName, sortItems, type ListItem, type ShoppingList, type Staple } from '../data/model';
+import { capitalize } from '@huishouden/pwa-kit/i18n';
+import { formatDayLong, formatTime } from '@huishouden/pwa-kit/time';
+import { useT } from '../i18n';
 import { useWakeLock } from '../lib/prefs';
 
 interface Props {
@@ -36,6 +39,7 @@ function useClock(): Date {
 
 /** Always-on kitchen tablet layout: big targets, screen kept awake. */
 export function HubView(props: Props) {
+  const t = useT();
   const { lists, items, staples, selectedList } = props;
   useWakeLock(true);
   const now = useClock();
@@ -50,8 +54,8 @@ export function HubView(props: Props) {
     <div className="grid h-full min-h-0 gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <section className="flex min-h-0 flex-col gap-5">
         <div>
-          <p className="text-5xl font-light tabular-nums">{now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
-          <p className="text-lg text-muted">{now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+          <p className="text-5xl font-light tabular-nums">{formatTime(now.getTime())}</p>
+          <p className="text-lg text-muted">{capitalize(formatDayLong(now.getTime()))}</p>
         </div>
         {lists.length > 1 && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -67,15 +71,15 @@ export function HubView(props: Props) {
                 >
                   <ListIconBadge icon={l.icon} color={l.color} />
                   <span className="min-w-0">
-                    <span className="block truncate font-semibold">{l.name}</span>
-                    <span className="text-sm text-muted">{count === 0 ? 'Empty' : `${count} to get`}</span>
+                    <span className="block truncate font-semibold">{listName(l)}</span>
+                    <span className="text-sm text-muted">{count === 0 ? t('hub.empty') : t('hub.toGet', { count })}</span>
                   </span>
                 </button>
               );
             })}
           </div>
         )}
-        <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} large placeholder={`Add to ${selectedList.name}…`} />
+        <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} large placeholder={t('hub.addTo', { list: listName(selectedList) })} />
         <div className="min-h-0 overflow-y-auto">
           <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} onForget={props.onForgetStaple} limit={18} large />
         </div>
@@ -83,8 +87,8 @@ export function HubView(props: Props) {
 
       <section className="flex min-h-0 flex-col rounded-3xl bg-white/70 p-4 dark:bg-forest-800/60">
         <h2 className="mb-3 text-2xl font-bold">
-          {selectedList.name}
-          <span className="ml-2 text-lg font-normal text-muted">{pending.length === 0 ? 'all caught up' : `${pending.length} to get`}</span>
+          {listName(selectedList)}
+          <span className="ml-2 text-lg font-normal text-muted">{pending.length === 0 ? t('hub.caughtUp') : t('hub.toGet', { count: pending.length })}</span>
         </h2>
         <div className="grid min-h-0 content-start gap-2 overflow-y-auto">
           <SortableItems
@@ -103,7 +107,7 @@ export function HubView(props: Props) {
           )}
         </div>
         {pending.length === 0 && recentlyDone.length === 0 && (
-          <p className="m-auto max-w-sm text-center text-lg text-muted">Notice something running low? Add it on the left and it shows up on everyone's phone.</p>
+          <p className="m-auto max-w-sm text-center text-lg text-muted">{t('hub.emptyHint')}</p>
         )}
       </section>
     </div>
