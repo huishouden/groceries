@@ -7,7 +7,7 @@ import { setRole } from '@huishouden/pwa-kit/roles';
 import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
 import { AppBar } from '@huishouden/pwa-kit/react/app-bar';
 import { SampleBanner, SectionTabs, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
-import { CloudOff, CookingPot, ListChecks, Loader2, Settings, Store, UtensilsCrossed } from 'lucide-react';
+import { CloudOff, CookingPot, ListChecks, Loader2, Store, UtensilsCrossed } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
 import { ErrorNotice } from './components/ErrorNotice';
 import { friendlyError, type FriendlyError } from './lib/errors';
@@ -69,11 +69,11 @@ interface FrameProps {
 }
 
 /** The Huishouden frame (DESIGN.md "Frame"): the kit's app bar over the page. */
-function Frame({ user, signingIn, onSignIn, onSignOut, nav, actions, children }: FrameProps & { nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
+function Frame({ user, signingIn, onSignIn, onSignOut, onSettings, nav, actions, children }: FrameProps & { onSettings?: () => void; nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
   const t = useT();
   return (
     <div className="flex h-full flex-col">
-      <AppBar app={t('app.name')} glyph="cart" portalUrl={PORTAL_URL} version={VERSION} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut}>
+      <AppBar app={t('app.name')} glyph="cart" portalUrl={PORTAL_URL} version={VERSION} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut} onSettings={onSettings} settingsLabel={t('settings.open')}>
         {nav}
         {actions}
       </AppBar>
@@ -496,6 +496,7 @@ function HouseholdApp({
   return (
     <Frame
       {...frame}
+      onSettings={() => setSettings(true)}
       nav={<SectionTabs tabs={modes} tab={mode} onTab={(id) => switchMode(id as Mode)} />}
       actions={
         <span slot="actions" className="flex items-center gap-1">
@@ -504,9 +505,6 @@ function HouseholdApp({
           ) : data.pendingWrites ? (
             <Loader2 size={18} className="animate-spin text-muted" aria-label={t('status.syncing')} role="img" />
           ) : null}
-          <button onClick={() => setSettings(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-stone-100 dark:hover:bg-forest-700" aria-label={t('settings.open')}>
-            <Settings size={20} />
-          </button>
         </span>
       }
     >

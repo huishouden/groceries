@@ -1,4 +1,5 @@
 import { addItem, createHousehold, expect, signIn, test, watchErrors } from './fixtures';
+import { openAppSettings } from '@huishouden/pwa-kit/e2e';
 
 // Against the household's real rules (fetched from huishouden/rules): what the app hides, the rules
 // refuse too. SCREENSHOT_DIR keeps the helper's screens for a PR's before and after.
@@ -9,7 +10,7 @@ test('a helper ticks off anyone’s items and changes only their own; settings a
   await createHousehold(page);
   await addItem(page, 'Eggs');
 
-  await page.getByRole('button', { name: 'App settings' }).click();
+  await openAppSettings(page, 'Groceries settings');
   await page.getByPlaceholder('Their Google account email').fill('helen@example.com');
   await page.getByLabel('Their role').selectOption('helper');
   await page.getByRole('button', { name: 'Add member' }).click();
@@ -37,7 +38,7 @@ test('a helper ticks off anyone’s items and changes only their own; settings a
   await expect(page.getByRole('button', { name: 'Mark Eggs not done' })).toBeVisible();
   if (shots) await helen.screenshot({ path: `${shots}/groceries-helper-lists.png` });
 
-  await helen.getByRole('button', { name: 'App settings' }).click();
+  await openAppSettings(helen, 'Groceries settings');
   await expect(helen.getByText('Only admins can invite or remove people and set roles.')).toBeVisible();
   await expect(helen.getByRole('button', { name: 'Add member' })).toHaveCount(0);
   if (shots) await helen.screenshot({ path: `${shots}/groceries-helper-settings.png` });

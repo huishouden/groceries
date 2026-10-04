@@ -19,7 +19,7 @@
   "status.offline": "Sin conexión: los cambios se sincronizan al volver a conectarte",
   "status.syncing": "Sincronizando",
   "status.connecting": "Aún conectando. Se reintenta automáticamente.",
-  "settings.open": "Configuración de la app",
+  "settings.open": "Configuración de Compras",
   "lists.none": "Este hogar no tiene listas.",
   "lists.addDefaults": "Agregar las listas predeterminadas",
   "lists.createOwn": "O crea las tuyas",

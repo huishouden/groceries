@@ -1,5 +1,6 @@
 import { devices } from '@playwright/test';
 import { addItem, createHousehold, expect, readHouseholdCollection, seedFood, signIn, test } from './fixtures';
+import { openAppSettings } from '@huishouden/pwa-kit/e2e';
 
 // Gemini has no emulator, so these tests stand in a fixed response; the prompt itself is
 // exercised against the real model with scripts/menu-probe.ts.
@@ -33,7 +34,7 @@ test('suggests meals from what was bought and shares them with the household', a
     await addItem(page, item);
     await page.getByRole('button', { name: `Mark ${item} done` }).click();
   }
-  await page.getByRole('button', { name: 'App settings' }).click();
+  await openAppSettings(page, 'Groceries settings');
   await page.getByPlaceholder('Their Google account email').fill('bob@example.com');
   await page.getByRole('button', { name: 'Add member' }).click();
   await page.getByRole('button', { name: 'Close' }).click();
@@ -128,7 +129,7 @@ test('a starred meal is a household favorite on every device, and either member 
     await addItem(page, item);
     await page.getByRole('button', { name: `Mark ${item} done` }).click();
   }
-  await page.getByRole('button', { name: 'App settings' }).click();
+  await openAppSettings(page, 'Groceries settings');
   await page.getByPlaceholder('Their Google account email').fill('bob@example.com');
   await page.getByRole('button', { name: 'Add member' }).click();
   await page.getByRole('button', { name: 'Close' }).click();

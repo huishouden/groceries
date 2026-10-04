@@ -1,4 +1,5 @@
 import { addItem, createHousehold, expect, readHouseholdDoc, seedHouseholdDoc, signIn, test } from './fixtures';
+import { openAppSettings } from '@huishouden/pwa-kit/e2e';
 
 // Google Tasks has no emulator: the kit's stand-ins answer instead (window.__mockGoogleTasksToken,
 // __mockGoogleTaskLists, __mockGoogleTasks), as Google would to a member who connected.
@@ -24,7 +25,7 @@ test('groceries told to an assistant land on the list; a Google list Tasks takes
     ];
   });
 
-  await page.getByRole('button', { name: 'App settings' }).click();
+  await openAppSettings(page, 'Groceries settings');
   const settings = page.getByRole('region', { name: 'Google Tasks', exact: true });
   await settings.getByRole('button', { name: 'Connect Google Tasks' }).click();
   await expect(settings).toContainText('My Tasks: goes to Chores & Notes in Tasks');
