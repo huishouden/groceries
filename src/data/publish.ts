@@ -2,7 +2,8 @@ import type { AgendaInput } from '@huishouden/pwa-kit/agenda';
 import type { TodoInput } from '@huishouden/pwa-kit/todos';
 import { appLink } from '../lib/appLink';
 import { dinnerAgenda, type PlannedMeal } from './mealPlan';
-import { URGENCY, type ListItem, type ShoppingList } from './model';
+import { URGENCY, listName, type ListItem, type ShoppingList } from './model';
+import { t } from '../i18n';
 
 // What Groceries shares with the rest of Huishouden: planned dinners on the household agenda (the
 // portal's Calendar and Today), and one summary line on the household to-do list. Worked out from
@@ -26,7 +27,7 @@ const LISTS_NAMED = 3;
  * others: only open items on those lists count.
  */
 export function todoItems(lists: ShoppingList[], items: ListItem[]): TodoInput[] {
-  const names = new Map(lists.map((l) => [l.id, l.name]));
+  const names = new Map(lists.map((l) => [l.id, listName(l)]));
   const open = items.filter((i) => !i.completed && names.has(i.listId));
   if (open.length === 0) return [];
 
@@ -37,13 +38,13 @@ export function todoItems(lists: ShoppingList[], items: ListItem[]): TodoInput[]
     .slice(0, LISTS_NAMED)
     .map(([id, n]) => `${names.get(id)} ${n}`);
   const urgent = open.filter((i) => i.urgency === URGENCY.URGENT).length;
-  const detail = [urgent > 0 ? `Need today: ${urgent}` : null, perList.size > 1 ? busiest.join(', ') : null].filter(Boolean).join(' · ');
+  const detail = [urgent > 0 ? t('publish.needToday', { count: urgent }) : null, perList.size > 1 ? busiest.join(', ') : null].filter(Boolean).join(' · ');
 
   return [
     {
       ref: 'list',
       status: 'info',
-      title: `Groceries: ${open.length} ${open.length === 1 ? 'thing' : 'things'} on the list`,
+      title: t('publish.summary', { count: open.length }),
       ...(detail ? { detail } : {}),
       createdAt: Math.min(...open.map((i) => i.createdAt)),
       url: appLink(),

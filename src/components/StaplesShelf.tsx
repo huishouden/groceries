@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SuggestionChip } from '@huishouden/pwa-kit/react/ui';
 import type { ListItem, Staple } from '../data/model';
+import { useT } from '../i18n';
 
 interface Props {
   staples: Staple[];
@@ -22,22 +23,23 @@ export function topStaples(staples: Staple[], activeItems: ListItem[], limit: nu
 }
 
 export function StaplesShelf({ staples, activeItems, onAdd, onForget, limit = 12, large }: Props) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const shown = topStaples(staples, activeItems, limit);
   if (shown.length === 0) return null;
   return (
-    <section aria-label="Frequent items">
+    <section aria-label={t('staples.label')}>
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-semibold tracking-wider text-muted uppercase">
-          {editing ? 'Tap × to stop suggesting' : 'Running low? Tap to add'}
+          {editing ? t('staples.editing') : t('staples.title')}
         </h3>
         <button
           type="button"
           onClick={() => setEditing(!editing)}
-          aria-label={editing ? 'Done editing suggestions' : 'Edit suggestions'}
+          aria-label={editing ? t('staples.doneEditing') : t('staples.edit')}
           className="-mr-2 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-link hover:bg-tint"
         >
-          {editing ? 'Done' : 'Edit'}
+          {editing ? t('common.done') : t('common.edit')}
         </button>
       </div>
       <div className={`flex gap-2 ${large ? 'flex-wrap' : 'scrollbar-none overflow-x-auto pb-1'}`}>
@@ -47,7 +49,7 @@ export function StaplesShelf({ staples, activeItems, onAdd, onForget, limit = 12
             label={s.displayName}
             large={large}
             editing={editing}
-            hint="Adding it again brings it back."
+            hint={t('staples.hint')}
             onPick={() => onAdd(s)}
             onRemove={() => onForget(s)}
           />

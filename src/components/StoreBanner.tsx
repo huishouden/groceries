@@ -4,6 +4,8 @@ import { nearbyPlaces, placeLabel, type NearbyPlace } from '../data/places';
 import { nearestStore, type StoreLayout } from '../data/stores';
 import { currentPosition, locationPermission } from '../lib/location';
 import { usePref } from '../lib/prefs';
+import { useT } from '../i18n';
+import { richT } from '../lib/rich';
 
 const SNOOZE_MS = 12 * 60 * 60 * 1000;
 const DONE_SHOPPING_SNOOZE_MS = 3 * 60 * 60 * 1000;
@@ -22,6 +24,7 @@ interface Props {
  * shopping at, asks once whether you are at a detected shop, or offers to detect one.
  */
 export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace, onEnd }: Props) {
+  const t = useT();
   const [snoozed, setSnoozed] = usePref<Record<string, number>>('snoozedPlaces', {});
   const [candidate, setCandidate] = useState<NearbyPlace | null>(null);
   const [permission, setPermission] = useState<PermissionState | 'unsupported' | null>(null);
@@ -81,7 +84,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
       <div role="status" className={`${line} bg-forest-50 text-forest-800 dark:bg-forest-800 dark:text-forest-100`}>
         <ShoppingCart size={16} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">
-          Shopping at <strong>{activeStore.name}</strong>. Check items off and add their aisle if you like.
+          {richT('banner.shopping', { store: <strong translate="no">{activeStore.name}</strong> })}
         </span>
         <button
           onClick={() => {
@@ -90,7 +93,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
           }}
           className="shrink-0 rounded-lg px-2 py-1 font-medium hover:bg-tint-strong"
         >
-          Done shopping
+          {t('banner.doneShopping')}
         </button>
       </div>
     );
@@ -99,10 +102,10 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
   if (candidate && onCreateFromPlace) {
     const label = placeLabel(candidate);
     return (
-      <div role="region" aria-label="Detected store" className={`${line} border border-forest-200 bg-surface dark:border-forest-600`}>
+      <div role="region" aria-label={t('banner.detected')} className={`${line} border border-forest-200 bg-surface dark:border-forest-600`}>
         <MapPin size={16} className="shrink-0 text-positive" />
         <span className="min-w-0 flex-1">
-          At <strong>{label}</strong>?
+          {richT('banner.atPlace', { place: <strong translate="no">{label}</strong> })}
         </span>
         <button
           onClick={() => {
@@ -111,7 +114,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
           }}
           className="shrink-0 rounded-lg bg-primary px-3 py-1 font-semibold text-on-primary"
         >
-          Yes
+          {t('common.yes')}
         </button>
         <button
           onClick={() => {
@@ -119,7 +122,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
             setCandidate(null);
           }}
           className="shrink-0 rounded-lg px-2 py-1 text-muted hover:bg-stone-100 dark:hover:bg-forest-700"
-          aria-label={`Not at ${label}`}
+          aria-label={t('banner.notAt', { place: label })}
         >
           <X size={16} />
         </button>
@@ -130,7 +133,7 @@ export function StoreBanner({ stores, activeStore, onUseStore, onCreateFromPlace
   if (permission === 'prompt') {
     return (
       <button onClick={() => void detect()} disabled={looking} className="inline-flex items-center gap-1.5 self-start text-sm text-muted hover:text-link">
-        <LocateFixed size={14} className={looking ? 'animate-pulse' : ''} /> {looking ? 'Looking…' : 'At a store? Detect it to learn aisles'}
+        <LocateFixed size={14} className={looking ? 'animate-pulse' : ''} /> {looking ? t('banner.looking') : t('banner.detect')}
       </button>
     );
   }

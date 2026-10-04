@@ -4,7 +4,9 @@ import type { Auth } from 'firebase/auth';
 import { googleTaskLists, googleTasksToken, type GoogleTaskList } from '@huishouden/pwa-kit/google-tasks';
 import { googleAccessMessage } from '@huishouden/pwa-kit/feedback';
 import { ghostButton, inputClass } from './ui';
-import type { ShoppingList } from '../data/model';
+import { listName, type ShoppingList } from '../data/model';
+import { useT } from '../i18n';
+import { richT } from '../lib/rich';
 import type { GoogleTasksLink } from '../data/googleTasks';
 
 /**
@@ -31,6 +33,7 @@ export function GoogleTasksSettings({
   /** This device has a fresh token: look for new tasks now. */
   onConnected: () => void;
 }) {
+  const t = useT();
   const [googleLists, setGoogleLists] = useState<GoogleTaskList[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export function GoogleTasksSettings({
       setGoogleLists(await googleTaskLists(token));
       onConnected();
     } catch (e) {
-      setError(googleAccessMessage(e, 'Google Tasks') ?? "Couldn't read your Google Tasks lists. Check the connection and try again.");
+      setError(googleAccessMessage(e, 'Google Tasks') ?? t('googleTasks.readFailed'));
     } finally {
       setBusy(false);
     }
@@ -53,21 +56,23 @@ export function GoogleTasksSettings({
     const others = links.filter((l) => l.googleListId !== list.id);
     const target = lists.find((l) => l.id === listId);
     const next = target ? [...others, { googleListId: list.id, title: list.title, listId, mode: 'add' as const }] : others;
-    onSave(next).catch(() => setError("Couldn't save. Try again."));
+    onSave(next).catch(() => setError(t('common.couldNotSave')));
   }
 
-  const listName = (id: string) => lists.find((l) => l.id === id)?.name ?? 'a removed list';
+  const nameOf = (id: string) => {
+    const list = lists.find((l) => l.id === id);
+    return list ? listName(list) : t('googleTasks.removedList');
+  };
   const tasksList = (l: GoogleTasksLink | undefined) => (l ? taskLists.find((t) => t.id === l.listId) : undefined);
   const mine = links.filter((l) => !tasksList(l));
-  const what = (l: GoogleTasksLink) => `New tasks in ${l.title} go straight onto ${listName(l.listId)}.`;
+  const what = (l: GoogleTasksLink) => t('googleTasks.goesOnto', { title: l.title, list: nameOf(l.listId) });
 
   return (
+    // i18n-ignore: Google's product name
     <section aria-label="Google Tasks" className="grid gap-2">
+      {/* i18n-ignore: Google's product name */}
       <p className="text-sm font-semibold">Google Tasks</p>
-      <p className="text-sm text-muted">
-        Things you ask the Gemini app or Google Assistant to add to a list land in Google Tasks. Groceries can bring them onto a shopping list. It checks when it
-        opens or comes back into view, for an hour after you connect on this device.
-      </p>
+      <p className="text-sm text-muted">{t('googleTasks.hint')}</p>
       {mine.length > 0 && (
         <ul className="grid gap-1 text-sm text-ink-soft">
           {mine.map((l) => (
@@ -77,20 +82,23 @@ export function GoogleTasksSettings({
       )}
       {googleLists === null ? (
         <button type="button" onClick={() => void connect()} disabled={busy} className={`${ghostButton} justify-self-start border border-line`}>
-          {busy ? <Loader2 size={18} className="animate-spin" /> : <ListTodo size={18} />} {mine.length ? 'Connect again and check now' : 'Connect Google Tasks'}
+          {busy ? <Loader2 size={18} className="animate-spin" /> : <ListTodo size={18} />} {mine.length ? t('googleTasks.reconnect') : t('googleTasks.connect')}
         </button>
       ) : googleLists.length === 0 ? (
-        <p className="text-sm text-muted">Your Google account has no task lists yet.</p>
+        <p className="text-sm text-muted">{t('googleTasks.none')}</p>
       ) : (
         <div className="grid gap-2">
           {googleLists.map((g) => {
             const theirs = tasksList(links.find((l) => l.googleListId === g.id));
             return theirs ? (
               <p key={g.id} className="text-sm text-muted">
-                {g.title}: goes to {theirs.name} in{' '}
-                <a href="/tasks/" className="font-medium text-link underline underline-offset-2">
-                  Tasks
-                </a>
+                {richT('googleTasks.goesToTasks', {
+                  app: (
+                    <a href="/tasks/" className="font-medium text-link underline underline-offset-2">
+                      {t('googleTasks.tasksApp')}
+                    </a>
+                  ),
+                }, { title: g.title, list: theirs.name })}
               </p>
             ) : (
               <label key={g.id} className="grid gap-1 text-sm text-muted">
@@ -99,12 +107,12 @@ export function GoogleTasksSettings({
                   className={inputClass}
                   value={links.find((l) => l.googleListId === g.id)?.listId ?? ''}
                   onChange={(e) => choose(g, e.target.value)}
-                  aria-label={`Bring ${g.title} into`}
+                  aria-label={t('googleTasks.bringInto', { title: g.title })}
                 >
-                  <option value="">Leave in Google Tasks</option>
+                  <option value="">{t('googleTasks.leave')}</option>
                   {lists.map((l) => (
                     <option key={l.id} value={l.id}>
-                      Add to {l.name}
+                      {t('googleTasks.addTo', { list: listName(l) })}
                     </option>
                   ))}
                 </select>

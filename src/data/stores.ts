@@ -1,4 +1,5 @@
 import { AISLE_ORDER, CATEGORIES, sortItems, type Category, type ListItem } from './model';
+import { t as tr } from '../i18n';
 
 export interface GeoPoint {
   lat: number;
@@ -39,8 +40,8 @@ export function compareAisles(a: string, b: string): number {
 
 /** "12" → "Aisle 12"; anything with letters ("Deli", "Back wall") is kept as typed. */
 export function aisleLabel(aisle: string): string {
-  const t = aisle.trim();
-  return /^\d+[a-z]?$/i.test(t) ? `Aisle ${t.toUpperCase()}` : t;
+  const typed = aisle.trim();
+  return /^\d+[a-z]?$/i.test(typed) ? tr('aisle.number', { aisle: typed.toUpperCase() }) : typed;
 }
 
 export type StoreGroup = { key: string; title: string; label?: string; items: ListItem[] };

@@ -1,4 +1,5 @@
 import { can, type Role } from '@huishouden/pwa-kit/roles';
+import { t } from '../i18n';
 export const CATEGORIES = {
   PRODUCE: 'Produce & Greens',
   DAIRY_EGGS: 'Dairy & Eggs',
@@ -16,6 +17,29 @@ export const CATEGORIES = {
 } as const;
 
 export type Category = (typeof CATEGORIES)[keyof typeof CATEGORIES];
+
+/** Categories are stored in English (every device groups the same); shown in the reader's language. */
+const CATEGORY_KEYS = {
+  'Produce & Greens': 'category.produce',
+  'Dairy & Eggs': 'category.dairy',
+  'Bakery & Bread': 'category.bakery',
+  'Meat & Seafood': 'category.meat',
+  'Pantry & Dry Goods': 'category.pantry',
+  'Frozen Foods': 'category.frozen',
+  'Beverages & Coffee': 'category.beverages',
+  'Snacks & Sweets': 'category.snacks',
+  'Household & Cleaning': 'category.household',
+  'Personal Care': 'category.personalCare',
+  'Hardware & Tools': 'category.hardware',
+  'Chores & Tasks': 'category.chores',
+  Other: 'category.other',
+} as const satisfies Record<Category, string>;
+
+/** "Produce & Greens" / "Frutas y verduras" / "Groente en fruit"; anything else as stored. */
+export function categoryLabel(category: string): string {
+  const key = CATEGORY_KEYS[category as Category];
+  return key ? t(key) : category;
+}
 
 /** The sections an item can be filed under. Chores & Tasks is Huishouden Tasks' own. */
 export const ALL_CATEGORIES: Category[] = Object.values(CATEGORIES).filter((c) => c !== CATEGORIES.CHORES);
@@ -46,6 +70,13 @@ export const URGENCY = {
 export type Urgency = (typeof URGENCY)[keyof typeof URGENCY];
 
 export const ALL_URGENCIES: Urgency[] = [URGENCY.NORMAL, URGENCY.URGENT, URGENCY.WHENEVER];
+
+const URGENCY_KEYS = { Standard: 'urgency.standard', 'Need Today': 'urgency.today', Whenever: 'urgency.whenever' } as const satisfies Record<Urgency, string>;
+
+/** An urgency (stored in English) in the reader's language. */
+export function urgencyLabel(urgency: Urgency): string {
+  return URGENCY_KEYS[urgency] ? t(URGENCY_KEYS[urgency]) : urgency;
+}
 
 export type ListIcon = 'grocery' | 'pantry' | 'bulk' | 'hardware' | 'notes' | 'chores';
 
@@ -153,6 +184,31 @@ export const DEFAULT_LISTS: Omit<ShoppingList, 'createdAt'>[] = [
   { id: 'chores', name: 'Chores & Notes', description: 'Reminders, repairs and weekend to-dos', icon: 'chores', color: '#8a6f9e', sortOrder: 4 },
 ];
 
+const DEFAULT_LIST_KEYS: Record<string, { name: 'defaultList.groceries' | 'defaultList.pantry' | 'defaultList.costco' | 'defaultList.hardware' | 'defaultList.chores'; description: 'defaultList.groceriesDescription' | 'defaultList.pantryDescription' | 'defaultList.costcoDescription' | 'defaultList.hardwareDescription' | 'defaultList.choresDescription' }> = {
+  groceries: { name: 'defaultList.groceries', description: 'defaultList.groceriesDescription' },
+  pantry: { name: 'defaultList.pantry', description: 'defaultList.pantryDescription' },
+  costco: { name: 'defaultList.costco', description: 'defaultList.costcoDescription' },
+  hardware: { name: 'defaultList.hardware', description: 'defaultList.hardwareDescription' },
+  chores: { name: 'defaultList.chores', description: 'defaultList.choresDescription' },
+};
+
+/**
+ * A list's name as shown: the default lists are stored with their English names; while a household
+ * keeps that name, it reads in the reader's language. A renamed list shows its own name.
+ */
+export function listName(list: Pick<ShoppingList, 'id' | 'name'>): string {
+  const keys = DEFAULT_LIST_KEYS[list.id];
+  const stock = DEFAULT_LISTS.find((l) => l.id === list.id);
+  return keys && stock && stock.name === list.name ? t(keys.name) : list.name;
+}
+
+/** A list's description as shown, the same way as `listName`. */
+export function listDescription(list: Pick<ShoppingList, 'id' | 'description'>): string {
+  const keys = DEFAULT_LIST_KEYS[list.id];
+  const stock = DEFAULT_LISTS.find((l) => l.id === list.id);
+  return keys && stock && stock.description === list.description ? t(keys.description) : list.description;
+}
+
 /** The suite's muted categorical set (DESIGN.md), in its order. */
 export const LIST_COLORS = ['#2d6a4f', '#c86d51', '#b08d57', '#5b7a99', '#8a6f9e', '#6f8f72', '#a8735a', '#78716c'];
 
@@ -225,22 +281,22 @@ export function formatListForSharing(listName: string, items: ListItem[]): strin
   const done = items.filter((i) => i.completed);
   const lines = [`${listName}`, ''];
   if (active.length === 0) {
-    lines.push('Everything on this list is done.');
+    lines.push(t('share.allDone'));
   } else {
     for (const [category, group] of groupByAisle(active)) {
-      lines.push(`${category}:`);
+      lines.push(t('share.section', { section: categoryLabel(category) }));
       for (const item of group) {
         let line = `- ${item.name}`;
         if (item.quantity && item.quantity !== '1') line += ` (${item.quantity})`;
         if (item.notes) line += `, ${item.notes}`;
-        if (item.urgency === URGENCY.URGENT) line += ' [need today]';
+        if (item.urgency === URGENCY.URGENT) line += ` ${t('share.needToday')}`;
         lines.push(line);
       }
       lines.push('');
     }
   }
   if (done.length > 0) {
-    lines.push(`Already done (${done.length}): ${done.map((i) => i.name).join(', ')}`);
+    lines.push(t('share.alreadyDone', { count: done.length, items: done.map((i) => i.name).join(', ') }));
   }
   return lines.join('\n').trimEnd();
 }
@@ -259,8 +315,8 @@ export function itemData(item: ListItem): Omit<ListItem, 'id'> {
 /** What the undo bar says after items are removed. */
 export function removedMessage(items: ListItem[], how: 'deleted' | 'cleared'): string {
   const n = items.length;
-  if (how === 'cleared') return `Cleared ${n} done item${n === 1 ? '' : 's'}`;
-  return n === 1 ? `Deleted "${items[0].name}"` : `Deleted ${n} items`;
+  if (how === 'cleared') return t('undo.cleared', { count: n });
+  return n === 1 ? t('undo.deletedOne', { name: items[0].name }) : t('undo.deletedMany', { count: n });
 }
 
 /**

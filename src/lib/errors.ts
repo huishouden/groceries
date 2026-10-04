@@ -1,5 +1,6 @@
 import { calendarError } from '@huishouden/pwa-kit/calendar';
 import { popupCancelled } from '@huishouden/pwa-kit/feedback';
+import { t } from '../i18n';
 /** What went wrong, phrased for the household rather than for a developer. */
 export interface FriendlyError {
   kind: 'offline' | 'busy' | 'quota' | 'timeout' | 'verification' | 'permission' | 'empty' | 'cancelled' | 'unknown';
@@ -47,7 +48,7 @@ export function friendlyError(e: unknown, context: ErrorContext, online = typeof
   if (!online || /network-request-failed|failed to fetch|networkerror|err_internet_disconnected|load failed/.test(all)) {
     return make(
       'offline',
-      context === 'meals' ? "You're offline. Meal ideas need a connection." : "Couldn't reach the internet. Check the connection and try again.",
+      context === 'meals' ? t('errors.offlineMeals') : t('errors.offline'),
       true,
     );
   }
@@ -55,33 +56,33 @@ export function friendlyError(e: unknown, context: ErrorContext, online = typeof
     // Google's permission window (Google Identity Services) in the kit's words, like every other app.
     return make(popupCancelled(e) || /access_denied/.test(all) ? 'cancelled' : 'unknown', calendarError(e), true);
   }
-  if (/popup-closed-by-user|cancelled-popup-request|access_denied/.test(all)) return make('cancelled', 'Sign-in was cancelled.', true);
+  if (/popup-closed-by-user|cancelled-popup-request|access_denied/.test(all)) return make('cancelled', t('errors.signInCancelled'), true);
   if (/user-mismatch/.test(all)) {
-    return make('verification', 'Pick the same Google account you are signed in with.', true);
+    return make('verification', t('errors.sameAccount'), true);
   }
   if (e instanceof TimeoutError || /timed out|timeout|deadline/.test(all)) {
-    return make('timeout', 'That took too long. Try again.', true);
+    return make('timeout', t('errors.timeout'), true);
   }
   if (e instanceof EmptyResultError) {
-    return make('empty', 'No usable ideas came back. Try again, or add a few more ingredients.', true);
+    return make('empty', t('errors.empty'), true);
   }
   // 429 covers both per-minute and per-day limits; only the daily one is worth waiting a day for.
   if (/(quota|resource_exhausted|limit).*(per ?day|daily)|(per ?day|daily).*(quota|limit)/.test(all)) {
-    return make('quota', "Today's free meal ideas are used up. Try again tomorrow.", false);
+    return make('quota', t('errors.quota'), false);
   }
   if (/\[(500|502|503|429)|resource_exhausted|quota|high demand|overloaded|unavailable|is busy/.test(all)) {
-    return make('busy', context === 'meals' ? 'Gemini is busy right now. Try again in a minute.' : 'The service is busy right now. Try again in a minute.', true);
+    return make('busy', context === 'meals' ? t('errors.busyMeals') : t('errors.busy'), true);
   }
   if (/app.?check|appcheck|recaptcha|unauthenticated|\[403|attestation/.test(all)) {
-    return make('verification', "Couldn't verify this device. Reload the page and try again.", true);
+    return make('verification', t('errors.verify'), true);
   }
   if (/permission-denied|insufficient permissions/.test(all)) {
-    return make('permission', "You don't have access to that. If you were just added to the household, reload the page.", false);
+    return make('permission', t('errors.permission'), false);
   }
   if (context === 'sign-in' && /unauthorized-domain/.test(all)) {
-    return make('verification', "This address isn't set up for sign-in yet.", false);
+    return make('verification', t('errors.domain'), false);
   }
-  return make('unknown', 'Something went wrong. Try again in a bit.', true);
+  return make('unknown', t('errors.unknown'), true);
 }
 
 /** Rejects with TimeoutError if `promise` has not settled within `ms`. */

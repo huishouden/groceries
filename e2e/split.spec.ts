@@ -21,8 +21,8 @@ test('to-do lists and their items stay in Tasks, one tap away', async ({ page })
   // A new list here is a shopping list: only shopping kinds are offered.
   await page.getByRole('button', { name: 'New list' }).click();
   const dialog = page.getByRole('dialog', { name: 'New list' });
-  for (const kind of ['grocery', 'pantry', 'bulk', 'hardware']) await expect(dialog.getByRole('button', { name: kind, exact: true })).toBeVisible();
-  for (const kind of ['chores', 'notes']) await expect(dialog.getByRole('button', { name: kind, exact: true })).toHaveCount(0);
+  for (const kind of ['Groceries', 'Pantry', 'Bulk', 'Hardware']) await expect(dialog.getByRole('button', { name: kind, exact: true })).toBeVisible();
+  for (const kind of ['Chores', 'Notes']) await expect(dialog.getByRole('button', { name: kind, exact: true })).toHaveCount(0);
 });
 
 test('on a phone, Tasks is at the end of the list chips', async ({ page }) => {
