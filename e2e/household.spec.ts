@@ -84,12 +84,20 @@ test('someone not in the household cannot see it', async ({ browser, page }) => 
   await other.close();
 });
 
-test('the theme in Settings is the suite-wide choice', async ({ page }) => {
+test("the theme is the app bar's, for the whole suite; Groceries settings have none of their own", async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await signIn(page, 'alice@example.com', 'Alice Example');
   await createHousehold(page);
   await openAppSettings(page, 'Groceries settings');
-  const theme = page.getByRole('group', { name: 'Theme' });
+  const settings = page.getByRole('dialog', { name: 'Settings' });
+  await expect(settings).toBeVisible();
+  await expect(settings.getByRole('group', { name: 'Theme' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(settings).toHaveCount(0);
+
+  const bar = page.locator('hh-app-bar');
+  await bar.locator('[data-trigger]').click();
+  const theme = bar.getByRole('group', { name: 'Theme' });
   await expect(theme.getByRole('button', { name: 'Automatic' })).toHaveAttribute('aria-pressed', 'true');
   await theme.getByRole('button', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveClass(/\bdark\b/);

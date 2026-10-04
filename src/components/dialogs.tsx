@@ -3,7 +3,6 @@ import { RoleNote, RoleSelect } from '@huishouden/pwa-kit/react/roles';
 import { useState } from 'react';
 import { Download, Search, Send, Trash2, UserPlus, Zap } from 'lucide-react';
 import { ALL_CATEGORIES, URGENCY, LIST_COLORS, SHOPPING_ICONS, categoryLabel, listName, moveInOrder, type Category, type Household, type ListIcon, type ListItem, type ShoppingList, type Urgency } from '../data/model';
-import { THEME_MODES, themeLabel, useTheme } from '@huishouden/pwa-kit/react/theme';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { ErrorNotice } from './ErrorNotice';
 import { Dialog, ListIconBadge, ghostButton, inputClass, primaryButton } from './ui';
@@ -248,7 +247,6 @@ export function SettingsDialog({
   onClose: () => void;
 }) {
   const t = useT();
-  const { mode, setMode } = useTheme();
   const [invite, setInvite] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('member');
   const myRole = householdRole(household, myEmail);
@@ -344,22 +342,6 @@ export function SettingsDialog({
 
         {googleTasks}
 
-        <section>
-          <p id="theme-label" className="mb-2 text-sm font-semibold">{t('settings.theme')}</p>
-          <p className="mb-2 text-sm text-muted">{t('settings.themeHint')}</p>
-          <div className="flex gap-2" role="group" aria-labelledby="theme-label">
-            {THEME_MODES.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                aria-pressed={mode === m}
-                className={`flex-1 rounded-xl border px-3 py-2 ${mode === m ? 'border-forest-600 bg-forest-50 font-semibold dark:bg-forest-700' : 'border-stone-200 dark:border-forest-600'}`}
-              >
-                {themeLabel(m)}
-              </button>
-            ))}
-          </div>
-        </section>
 
         {!install.installed && (
           <section>
