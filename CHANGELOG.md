@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/huishouden/groceries/compare/v1.4.0...v1.5.0) (2026-10-04)
+
+
+### Features
+
+* Add to calendar on planned meals (kit v0.67.0) ([#13](https://github.com/huishouden/groceries/issues/13)) ([edebe66](https://github.com/huishouden/groceries/commit/edebe66e650ca20b42742e68557006414e1853b3))
+
+
+### Bug Fixes
+
+* Groceries settings in the app bar's menu, one button signed out; kit 0.70.0 ([#16](https://github.com/huishouden/groceries/issues/16)) ([b5e0f7c](https://github.com/huishouden/groceries/commit/b5e0f7cf905ca170b75ef02fb7e9b53644d86880))
+
 ## [1.4.0](https://github.com/huishouden/groceries/compare/v1.3.0...v1.4.0) (2026-10-04)
 
 
