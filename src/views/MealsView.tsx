@@ -10,7 +10,8 @@ import { capitalize, formatList, getLocale } from '@huishouden/pwa-kit/i18n';
 import { t, useT } from '../i18n';
 import { groupMeals, mealLabel, mealName, mealPrep, heatLimit, kitchenInventory, mealIngredients, mealKey, pantryOf, plannedGroceries, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from '../data/menus';
 import { listName, type ListItem, type ShoppingList } from '../data/model';
-import { PLAN_TYPES, firstFreeDay, type PlanType, type PlannedMeal } from '../data/mealPlan';
+import { PLAN_TYPES, firstFreeDay, plannedEntry, type PlanType, type PlannedMeal } from '../data/mealPlan';
+import { AddToCalendar } from '@huishouden/pwa-kit/react/calendar';
 import { daysBetween, formatDayShort, relativeDay, toYmd, ymdToTime, type Ymd } from '@huishouden/pwa-kit/time';
 
 interface Props {
@@ -459,6 +460,7 @@ function WeekPlan({ days, plan, onUnplan }: { days: Ymd[]; plan: PlannedMeal[]; 
     return (
       <span className="flex items-center gap-1">
         <span className="min-w-0 flex-1">{mealName({ name: p.name, local: p.meal?.local })}</span>
+        <AddToCalendar compact entry={plannedEntry(p)} />
         {onUnplan && (
           <button
             onClick={() => void onUnplan(day, type)}

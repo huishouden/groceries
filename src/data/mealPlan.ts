@@ -2,7 +2,8 @@ import { collection, doc, query, where, type Firestore } from 'firebase/firestor
 import { writeBatch } from '@huishouden/pwa-kit/firestore';
 import { agendaDoc, agendaId, allDayStart, localizeAgenda, type AgendaInput } from '@huishouden/pwa-kit/agenda';
 import { addDays, toYmd, type Ymd } from '@huishouden/pwa-kit/time';
-import { mealName, type Meal } from './menus';
+import { mealLabel, mealName, type Meal } from './menus';
+import type { CalendarEntry } from '@huishouden/pwa-kit/calendar-export';
 import { t } from '../i18n';
 import { appLink } from '../lib/appLink';
 
@@ -54,6 +55,16 @@ const dinnerAgendaId = (day: Ymd) => agendaId(AGENDA_APP, agendaRef(day), allDay
 export function dinnerAgenda(planned: Pick<PlannedMeal, 'day' | 'name'> & { meal?: Pick<Meal, 'name' | 'local'> }): AgendaInput {
   const name = planned.meal ? mealName({ name: planned.name, local: planned.meal.local }) : planned.name;
   return { ref: agendaRef(planned.day), kind: 'other', title: t('agenda.dinner', { meal: name }).slice(0, 120), start: allDayStart(planned.day), allDay: true, url: MEALS_URL };
+}
+
+/**
+ * A planned meal as "Add to calendar" puts it in someone's own calendar: a dinner as the agenda has
+ * it ("Dinner: Tacos"), breakfast and lunch the same way, all day on their day, linking to Meals.
+ */
+export function plannedEntry(planned: Pick<PlannedMeal, 'day' | 'type' | 'name'> & { meal?: Pick<Meal, 'name' | 'local'> }): CalendarEntry {
+  if (planned.type === 'dinner') return dinnerAgenda(planned);
+  const name = planned.meal ? mealName({ name: planned.name, local: planned.meal.local }) : planned.name;
+  return { title: t('agenda.meal', { slot: mealLabel(planned.type), meal: name }).slice(0, 120), start: allDayStart(planned.day), allDay: true, url: MEALS_URL, kind: 'other' };
 }
 
 /**
