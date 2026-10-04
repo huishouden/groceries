@@ -19,7 +19,7 @@
   "status.offline": "Offline: wijzigingen worden gesynchroniseerd zodra je weer online bent",
   "status.syncing": "Synchroniseren",
   "status.connecting": "Nog aan het verbinden. Het wordt automatisch opnieuw geprobeerd.",
-  "settings.open": "App-instellingen",
+  "settings.open": "Instellingen van Boodschappen",
   "lists.none": "Dit huishouden heeft geen lijsten.",
   "lists.addDefaults": "De standaardlijsten toevoegen",
   "lists.createOwn": "Of maak je eigen lijsten",

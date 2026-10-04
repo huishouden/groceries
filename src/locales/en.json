@@ -19,7 +19,7 @@
   "status.offline": "Offline: changes sync when back online",
   "status.syncing": "Syncing",
   "status.connecting": "Still connecting. Retrying automatically.",
-  "settings.open": "App settings",
+  "settings.open": "Groceries settings",
   "lists.none": "This household has no lists.",
   "lists.addDefaults": "Add the default lists",
   "lists.createOwn": "Or create your own",
