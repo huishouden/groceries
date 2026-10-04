@@ -15,6 +15,15 @@ export interface FirebaseHandles {
 
 export const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
 
+/**
+ * Which emulators: a build for the kit's (`bun run e2e:emulator`) has VITE_FIREBASE_PROJECT_ID
+ * (demo-huishouden) and uses the kit's ports; without it, Groceries' own (`bun run e2e:local`, the
+ * README's dev setup) on ports apart from the other apps', so their tests can run at once.
+ */
+const emulator = import.meta.env.VITE_FIREBASE_PROJECT_ID
+  ? { projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string, host: import.meta.env.VITE_EMULATOR_HOST || '127.0.0.1', auth: 9099, firestore: 8080 }
+  : { projectId: 'demo-huishouden-groceries', host: '127.0.0.1', auth: 9199, firestore: 8180 };
+
 /** The OAuth web client: silent sign-in (One Tap) and Google API tokens (Google Tasks) use it. */
 export const googleClientId: string | undefined = import.meta.env.VITE_GOOGLE_CLIENT_ID || undefined;
 // Google API tokens come from Google Identity Services with this client, never from Firebase sign-in.
@@ -28,7 +37,7 @@ const APP_CHECK_SITE_KEY = '6LeCC9otAAAAAN4XiBDSnvtKapMGWRarZoUjRGzM'; // gitlea
 
 async function loadConfig(): Promise<FirebaseOptions> {
   if (useEmulators) {
-    return { apiKey: 'demo-key', projectId: 'demo-huishouden-groceries', authDomain: 'localhost', appId: 'demo-app' };
+    return { apiKey: 'demo-key', projectId: emulator.projectId, authDomain: 'localhost', appId: 'demo-app' };
   }
   // CI builds get the web config from the repo's VITE_FIREBASE_* variables (public by design).
   if (import.meta.env.VITE_FIREBASE_API_KEY) return firebaseConfigFromEnv(import.meta.env);
@@ -58,8 +67,8 @@ export function getFirebase(): Promise<FirebaseHandles> {
     // Persistent cache; writes from @huishouden/pwa-kit/firestore, so one made just before the app closes is kept.
     const db = initFirestore(app, { auth });
     if (useEmulators) {
-      connectAuthEmulator(auth, 'http://127.0.0.1:9199', { disableWarnings: true });
-      connectFirestoreEmulator(db, '127.0.0.1', 8180);
+      connectAuthEmulator(auth, `http://${emulator.host}:${emulator.auth}`, { disableWarnings: true });
+      connectFirestoreEmulator(db, emulator.host, emulator.firestore);
       // Browser tests sign in with an emulator-only Google credential instead of driving the popup.
       Object.assign(window, {
         __testSignIn: (email: string, name: string) =>

@@ -42,8 +42,9 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], baseURL: LIVE_URL },
     },
     {
-      // Key flows signed in as the staging project's invented test users (`bun run e2e:signed-in`,
-      // run by the kit's staging job against huishouden-staging-groceries.web.app/groceries/).
+      // Key flows signed in as a test household's invented people: on the kit's emulators
+      // (`bun run e2e:emulator` against a build at BASE_URL) and, for @staging and @smoke, on the
+      // staging site (the kit's staging job, `bun run e2e:signed-in`).
       name: 'signed-in',
       testMatch: /signed-in\.spec\.ts/,
       timeout: 60_000,
@@ -64,7 +65,8 @@ export default defineConfig({
         {
           command: 'bunx vite --port 5176 --strictPort',
           // A stand-in OAuth client, so Google API flows reach the kit's Google Identity Services stub.
-          env: { VITE_USE_EMULATORS: 'true', VITE_GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com' },
+          // No project id: Groceries' own emulators above, not the kit's (src/lib/firebase.ts).
+          env: { VITE_USE_EMULATORS: 'true', VITE_FIREBASE_PROJECT_ID: '', VITE_GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com' },
           url: 'http://localhost:5176/groceries/',
           reuseExistingServer: !process.env.CI,
           timeout: 60_000,
