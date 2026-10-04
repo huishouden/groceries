@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/huishouden/groceries/compare/v1.5.0...v1.5.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* Theme lives in the app bar's menu only; Settings drop their copy ([#17](https://github.com/huishouden/groceries/issues/17)) ([f2fc869](https://github.com/huishouden/groceries/commit/f2fc869158162fe4080af7e0df5b54f137a838da))
+
 ## [1.5.0](https://github.com/huishouden/groceries/compare/v1.4.0...v1.5.0) (2026-10-04)
 
 
