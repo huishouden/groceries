@@ -21,6 +21,8 @@ interface Props {
   favorites: FavoriteMeal[];
   /** The household's diets and pantry (portal settings); null until read or when unavailable. */
   food: FoodPreferences | null;
+  /** The household's members' emails, kept out of what is sent to Gemini. */
+  members: readonly string[];
   suggest: (ctx: MealContext) => Promise<ValidatedMeals>;
   onSave: (ingredients: string[], meals: Meal[]) => Promise<string>;
   onDelete: (id: string) => void;
@@ -46,7 +48,7 @@ const MIN_INGREDIENTS = 3;
  * Meal ideas from what is in the kitchen (bought in the last 10 days) and what is still on the food
  * lists, so a week can be planned before shopping, within the household's diets.
  */
-export function MealsView({ lists, items, menus, favorites, food, suggest, onSave, onDelete, onSaveFavorite, onRemoveFavorite, onAddItems, planWeek, plan, onPlan, onUnplan, readOnly = false }: Props) {
+export function MealsView({ lists, items, menus, favorites, food, members, suggest, onSave, onDelete, onSaveFavorite, onRemoveFavorite, onAddItems, planWeek, plan, onPlan, onUnplan, readOnly = false }: Props) {
   const t = useT();
   const [planning, setPlanning] = useState<Meal | null>(null);
   const bought = useMemo(() => kitchenInventory(items, lists, Date.now()), [items, lists]);
@@ -74,7 +76,7 @@ export function MealsView({ lists, items, menus, favorites, food, suggest, onSav
   const have = [...bought.filter((b) => !usedUp.has(b)), ...extras];
   const onList = planned.filter((p) => !usedUp.has(p));
   const available = [...have, ...onList];
-  const ctx: MealContext = { have, onList, pantry, food: { people } };
+  const ctx: MealContext = { have, onList, pantry, food: { people }, members };
   const shown = menus.find((m) => m.id === selectedId) ?? menus[0];
   const savedIds = new Set(favorites.map((f) => f.id));
   const groceries = lists.find((l) => l.icon === 'grocery') ?? lists[0];

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.4](https://github.com/huishouden/groceries/compare/v1.7.3...v1.7.4) (2026-10-05)
+
+### Bug Fixes
+
+* Meal ideas name nobody to Gemini: the household's people go as "Person A", "Person B", … with their diets, allergies, spice and notes, but no names or emails, and names and members' emails in notes are replaced (pwa-kit 0.104.0 `pseudonymousFood`). Reasons a meal was left out still name the person, from the household's own list; anything the model writes about a stand-in is shown with the real name.
+
 ## [1.7.3](https://github.com/huishouden/groceries/compare/v1.7.2...v1.7.3) (2026-10-05)
 
 ### Bug Fixes
