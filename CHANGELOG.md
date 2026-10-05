@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.7.3](https://github.com/huishouden/groceries/compare/v1.7.2...v1.7.3) (2026-10-05)
+
+### Bug Fixes
+
+* Rebuild against the re-tagged kit ([9629c9f](https://github.com/huishouden/groceries/commit/9629c9f93408d8cf3d2407afa4067200a67616ae))
+
 ## [1.7.2](https://github.com/huishouden/groceries/compare/v1.7.1...v1.7.2) (2026-10-05)
 
 ### Changes
