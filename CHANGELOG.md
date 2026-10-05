@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.1](https://github.com/huishouden/groceries/compare/v1.6.0...v1.6.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **items:** done items read as done, not faded; kit 0.86.0 ([#24](https://github.com/huishouden/groceries/issues/24)) ([1d0870c](https://github.com/huishouden/groceries/commit/1d0870c4f4bed6e6e0f5f9c8b151b34e965c2a6d))
+
 ## [1.6.0](https://github.com/huishouden/groceries/compare/v1.5.1...v1.6.0) (2026-10-05)
 
 
