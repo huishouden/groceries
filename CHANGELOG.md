@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.2](https://github.com/huishouden/groceries/compare/v1.6.1...v1.6.2) (2026-10-05)
+
+### Documentation
+
+* refresh screenshots from 326469a ([0c254b4](https://github.com/huishouden/groceries/commit/0c254b430e6d518eef586aeaecdf1ee0faa3ce16))
+
 ## [1.6.1](https://github.com/huishouden/groceries/compare/v1.6.0...v1.6.1) (2026-10-05)
 
 
