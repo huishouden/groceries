@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/huishouden/groceries/compare/v1.5.1...v1.6.0) (2026-10-05)
+
+
+### Features
+
+* **stores:** saved stores nearest first, measured from home without location ([#22](https://github.com/huishouden/groceries/issues/22)) ([083c53c](https://github.com/huishouden/groceries/commit/083c53c6d40c1c4a4ffa7bb85580e3818116433c))
+
 ## [1.5.1](https://github.com/huishouden/groceries/compare/v1.5.0...v1.5.1) (2026-10-04)
 
 
