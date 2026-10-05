@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.0](https://github.com/huishouden/groceries/compare/v1.6.3...v1.7.0) (2026-10-05)
+
+### Features
+
+* hashed assets from the suite's asset CDN (pwa-kit 0.100.0) ([beedfc4](https://github.com/huishouden/groceries/commit/beedfc435f8ebbf6b81ecc46ffa4eab3524540c3))
+
+### Documentation
+
+* README says releases are the PR author's (hh dev release) (#28) ([af5dd13](https://github.com/huishouden/groceries/commit/af5dd131117627ce4562eecdc9066300e8643c54))
+
 ## [1.6.3](https://github.com/huishouden/groceries/compare/v1.6.2...v1.6.3) (2026-10-05)
 
 ### Tests
