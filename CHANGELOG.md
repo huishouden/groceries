@@ -4,7 +4,7 @@
 
 ### Features
 
-* hashed assets from the suite's asset CDN (pwa-kit 0.100.0) ([beedfc4](https://github.com/huishouden/groceries/commit/beedfc435f8ebbf6b81ecc46ffa4eab3524540c3))
+* hashed build files (`assets/*`) load from the suite's asset CDN (Cloudflare Worker `huishouden-assets`, pwa-kit 0.100.0); if the CDN fails the page falls back once to the site's own copy; `HH_ASSET_CDN=off` rolls the suite back ([beedfc4](https://github.com/huishouden/groceries/commit/beedfc435f8ebbf6b81ecc46ffa4eab3524540c3))
 
 ### Documentation
 
