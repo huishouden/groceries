@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.3](https://github.com/huishouden/groceries/compare/v1.6.2...v1.6.3) (2026-10-05)
+
+### Tests
+
+* signed-in tests on a household of the run's own, on the kit's emulators (`bun run e2e:emulator`); an emulator build takes the kit's project and ports ([#19](https://github.com/huishouden/groceries/issues/19))
+
 ## [1.6.2](https://github.com/huishouden/groceries/compare/v1.6.1...v1.6.2) (2026-10-05)
 
 ### Documentation
