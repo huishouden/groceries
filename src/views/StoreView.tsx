@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { Check, ChevronDown, LocateFixed, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, House, LocateFixed, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
+import { formatDistance } from '@huishouden/pwa-kit/places';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { RoleNote } from '@huishouden/pwa-kit/react/roles';
 import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
@@ -33,6 +34,8 @@ interface Props {
   canSetUp?: boolean;
   /** Learned aisles at the selected store, keyed by normalised item name. */
   aisles: Map<string, string>;
+  /** Metres to each saved store with a location, and whether from the device or from home (`storesByDistance`). */
+  distances?: { meters: Map<string, number>; from: 'here' | 'home' };
 }
 
 function currentPosition(): Promise<GeoPoint> {
@@ -148,12 +151,16 @@ export function StoreView(props: Props) {
           <Chip active={!store} onClick={() => choose(null)}>
             {t('store.typical')}
           </Chip>
-          {stores.map((s) => (
-            <Chip key={s.id} active={s.id === store?.id} onClick={() => choose(s.id)}>
-              {s.location && <MapPin size={12} className="mr-0.5 inline" />}
-              {s.name}
-            </Chip>
-          ))}
+          {stores.map((s) => {
+            const meters = props.distances?.meters.get(s.id);
+            return (
+              <Chip key={s.id} active={s.id === store?.id} onClick={() => choose(s.id)}>
+                {s.location && <MapPin size={12} className="mr-0.5 inline" />}
+                {s.name}
+                {meters !== undefined && <span className="font-normal"> · {formatDistance(meters / 1000)}</span>}
+              </Chip>
+            );
+          })}
           {props.canSetUp !== false && (
             <Chip onClick={() => setAdding(true)}>
               <Plus size={12} className="mr-0.5 inline" /> {t('store.add')}
@@ -178,6 +185,12 @@ export function StoreView(props: Props) {
               {t('common.add')}
             </button>
           </form>
+        )}
+        {props.distances && props.distances.meters.size > 0 && (
+          <p className="flex items-center gap-1 text-sm text-muted" data-testid="store-distances">
+            {props.distances.from === 'home' ? <House size={14} aria-hidden="true" /> : <LocateFixed size={14} aria-hidden="true" />}
+            {props.distances.from === 'home' ? t('store.nearestFromHome') : t('store.nearestFromHere')}
+          </p>
         )}
         {props.canSetUp === false && <RoleNote action="change-settings" />}
         {store && !editing && props.canSetUp !== false && (

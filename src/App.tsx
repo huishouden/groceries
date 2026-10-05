@@ -34,7 +34,8 @@ import {
   useStores,
   settled,
 } from './data/store';
-import { DEMO_AUTH, DEMO_EMAIL, DEMO_HOUSEHOLD, openDemo, suggestDemoMeals } from './data/demo';
+import { DEMO_AUTH, DEMO_EMAIL, DEMO_HOME, DEMO_HOUSEHOLD, openDemo, suggestDemoMeals } from './data/demo';
+import { setHome } from '@huishouden/pwa-kit/home';
 import { googleTaskItem, markHandled, saveGoogleTasksLinks, watchTasksSettings, type TasksSettings } from './data/googleTasks';
 import { GoogleTasksSettings } from './components/GoogleTasksSettings';
 import { GoogleTasksSuggestions, useGoogleTasksSuggestions } from '@huishouden/pwa-kit/react/google-tasks';
@@ -45,6 +46,8 @@ import { PrefScope, useInstallPrompt, useOnline, usePref } from './lib/prefs';
 import { HubView } from './views/HubView';
 import { ListsView } from './views/ListsView';
 import { StoreView } from './views/StoreView';
+import { storesByDistance } from './data/stores';
+import { useDistanceOrigin } from './lib/location';
 import { StoreBanner } from './components/StoreBanner';
 import { AislePrompt } from './components/AislePrompt';
 import { placeLabel } from './data/places';
@@ -148,6 +151,9 @@ function DemoApp({ frame, signInError }: { frame: FrameProps; signInError: Frien
   const [db, setDb] = useState<Firestore | null>(null);
   useEffect(() => {
     void openDemo().then(setDb);
+    // The sample household's invented home, so its stores are measured from it signed out too.
+    setHome(DEMO_HOME);
+    return () => setHome(undefined);
   }, []);
   if (!db) {
     return (
@@ -364,6 +370,9 @@ function HouseholdApp({
     setAskAisleFor(!item.completed && shoppingStoreId && !aisles.has(stapleKey(item.name)) ? item.id : null);
   };
   const findStore = stores.find((st) => st.id === aisleStoreId);
+  // Saved stores nearest first, from the device when location is allowed, else from home.
+  const origin = useDistanceOrigin(mode === 'store' || editing !== null);
+  const nearest = useMemo(() => storesByDistance(stores, origin?.point), [stores, origin]);
   const aisleProps = aisleStoreId
     ? {
         aisleFor: (item: ListItem) => aisles.get(stapleKey(item.name)),
@@ -595,7 +604,8 @@ function HouseholdApp({
            
             aisle={aisleProps}
             onClearCompleted={clearCompleted}
-            stores={stores}
+            stores={nearest.stores}
+            distances={origin ? { meters: nearest.meters, from: origin.from } : undefined}
             storeId={storeId}
             onSelectStore={(id) => {
               if (id) startShopping(id);
@@ -647,8 +657,8 @@ function HouseholdApp({
         <EditItemDialog
           item={editing}
           lists={data.lists}
-          // The store being shopped first, then the household's other stores.
-          storeNames={[...(findStore ? [findStore.name] : []), ...stores.filter((st) => st !== findStore).map((st) => st.name)]}
+          // The store being shopped first, then the household's other stores, nearest first.
+          storeNames={[...(findStore ? [findStore.name] : []), ...nearest.stores.filter((st) => st !== findStore).map((st) => st.name)]}
           onSave={(changes) => {
             repo.updateItem(editing.id, changes);
             // A corrected aisle sticks: the next time this item is added it lands there.

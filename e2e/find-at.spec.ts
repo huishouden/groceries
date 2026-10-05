@@ -49,12 +49,12 @@ test("shopping at a detected Publix, each item links to Publix's own search for 
   );
 });
 
-test('with no store detected, an item offers the household’s stores', async ({ page }) => {
+test('with no store detected, an item offers the household’s stores, nearest home first', async ({ page }) => {
   await page.goto('./');
   await ready(page);
   await expect(page.getByRole('link', { name: /^Find .* at / })).toHaveCount(0);
   await page.getByRole('button', { name: 'Edit Whole milk' }).click();
-  await expect(page.getByRole('dialog').getByRole('group', { name: 'Find it at a store' }).getByRole('link')).toHaveText(['Example Market']);
+  await expect(page.getByRole('dialog').getByRole('group', { name: 'Find it at a store' }).getByRole('link')).toHaveText(['Sample Foods', 'Example Market']);
 });
 
 for (const viewport of [
