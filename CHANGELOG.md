@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.7.0](https://github.com/huishouden/groceries/compare/v1.6.3...v1.7.0) (2026-10-05)
+
+### Features
+
+* hashed build files (`assets/*`) load from the suite's asset CDN (Cloudflare Worker `huishouden-assets`, pwa-kit 0.100.0); if the CDN fails the page falls back once to the site's own copy; `HH_ASSET_CDN=off` rolls the suite back ([beedfc4](https://github.com/huishouden/groceries/commit/beedfc435f8ebbf6b81ecc46ffa4eab3524540c3))
+
+### Documentation
+
+* README says releases are the PR author's (hh dev release) (#28) ([af5dd13](https://github.com/huishouden/groceries/commit/af5dd131117627ce4562eecdc9066300e8643c54))
+
+### Bug Fixes
+
+* the emulator build uses the kit's emulator ports from `VITE_EMULATOR_AUTH_PORT` / `VITE_EMULATOR_FIRESTORE_PORT` (pwa-kit 0.93+), so `hh dev verify` runs the signed-in tests on the free ports it picks
+
 ## [1.6.3](https://github.com/huishouden/groceries/compare/v1.6.2...v1.6.3) (2026-10-05)
 
 ### Tests
