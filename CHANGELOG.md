@@ -10,6 +10,10 @@
 
 * README says releases are the PR author's (hh dev release) (#28) ([af5dd13](https://github.com/huishouden/groceries/commit/af5dd131117627ce4562eecdc9066300e8643c54))
 
+### Bug Fixes
+
+* the emulator build uses the kit's emulator ports from `VITE_EMULATOR_AUTH_PORT` / `VITE_EMULATOR_FIRESTORE_PORT` (pwa-kit 0.93+), so `hh dev verify` runs the signed-in tests on the free ports it picks
+
 ## [1.6.3](https://github.com/huishouden/groceries/compare/v1.6.2...v1.6.3) (2026-10-05)
 
 ### Tests

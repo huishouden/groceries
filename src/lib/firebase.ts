@@ -21,7 +21,13 @@ export const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
  * README's dev setup) on ports apart from the other apps', so their tests can run at once.
  */
 const emulator = import.meta.env.VITE_FIREBASE_PROJECT_ID
-  ? { projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string, host: import.meta.env.VITE_EMULATOR_HOST || '127.0.0.1', auth: 9099, firestore: 8080 }
+  ? {
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string,
+      host: import.meta.env.VITE_EMULATOR_HOST || '127.0.0.1',
+      // The kit's ports (pwa-kit 0.93+ lets a run pick free ones; `hh dev verify` does).
+      auth: Number(import.meta.env.VITE_EMULATOR_AUTH_PORT) || 9099,
+      firestore: Number(import.meta.env.VITE_EMULATOR_FIRESTORE_PORT) || 8080,
+    }
   : { projectId: 'demo-huishouden-groceries', host: '127.0.0.1', auth: 9199, firestore: 8180 };
 
 /** The OAuth web client: silent sign-in (One Tap) and Google API tokens (Google Tasks) use it. */
