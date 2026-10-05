@@ -1,9 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
-import { SUITE_ORIGIN } from '@huishouden/pwa-kit/site';
 
-// The kit's CI passes the live site as BASE_URL; by default production, Groceries' path on the suite's
+// The kit's CI passes the live site as BASE_URL; by default the staging suite, never production (pwa-kit docs/one-site.md "Bandwidth"): Groceries' path on the suite's
 // one site. Specs use relative paths (`./`, `./?mode=x`): a leading `/` would open the portal.
-const LIVE_URL = process.env.BASE_URL || `${SUITE_ORIGIN}/groceries/`;
+const LIVE_URL = process.env.BASE_URL || `https://huishouden-staging.web.app/groceries/`;
 
 export default defineConfig({
   testDir: 'e2e',
