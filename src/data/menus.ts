@@ -1,4 +1,4 @@
-import { DEFAULT_PANTRY, SPICE_MAX_HEAT, householdDietPreferences, householdDietRules, householdMaxHeat, pantryText, type FoodPreferences } from '@huishouden/pwa-kit/food';
+import { DEFAULT_PANTRY, SPICE_MAX_HEAT, householdDietPreferences, householdDietRules, householdMaxHeat, pantryText, pseudonymousFood, type FoodPreferences } from '@huishouden/pwa-kit/food';
 import { avoidCaffeine, dietProblems, levelScore, mealLevels, type MealLevels } from './diet';
 import { CATEGORIES, type ListItem, type ShoppingList } from './model';
 import { formatList, getLang, type Lang } from '@huishouden/pwa-kit/i18n';
@@ -84,6 +84,13 @@ export interface MealContext {
   pantry: readonly string[];
   /** The household's people and diets; diets are rules, not hints. */
   food: Pick<FoodPreferences, 'people'>;
+  /** The household's members' emails, kept out of notes in the prompt (the kit's pseudonymousFood). */
+  members?: readonly string[];
+}
+
+/** The food list as Gemini sees it (people as "Person A", …), and the way back to real names. */
+function forModel(ctx: MealContext) {
+  return pseudonymousFood(ctx.food, (ctx.members ?? []).map((email) => ({ email })));
 }
 
 export type IngredientSource = 'basic' | 'have' | 'list' | 'extra';
@@ -283,14 +290,18 @@ export function heatLimit(food: Pick<FoodPreferences, 'people'>): { max: number;
 const HEAT_WORDS = ['not spicy at all', 'at most a little heat', 'at most medium heat', 'any heat'];
 
 export function menuPrompt(ctx: MealContext, perType = 3): string {
+  // Gemini is outside the household: people go to it as "Person A", "Person B", … with their diets
+  // and notes but not their names or emails (the kit's pseudonymousFood). The checks on what comes
+  // back (validateMeals) and the reasons shown run here, on the real list.
+  const { food } = forModel(ctx);
   // Strict diets are rules; gentle ones (GERD, low-sodium) are preferences (the kit's DIET_STRICT).
   // The household's lowest spice tolerance is a rule too: every meal is checked against it.
-  const limit = heatLimit(ctx.food);
+  const limit = heatLimit(food);
   const rules = [
-    ...householdDietRules(ctx.food, { strictOnly: true }),
+    ...householdDietRules(food, { strictOnly: true }),
     ...(limit && limit.max < 3 ? [`Heat: every meal ${HEAT_WORDS[limit.max]}, heat ${limit.max} of 3 or less (for ${limit.who}).`] : []),
   ];
-  const prefs = householdDietPreferences(ctx.food);
+  const prefs = householdDietPreferences(food);
   const lang = getLang();
   return [
     `HAVE: ${ctx.have.join(', ') || '(nothing yet)'}`,
@@ -327,6 +338,8 @@ export function validateMeals(raw: unknown, ctx: MealContext): ValidatedMeals {
   const result: ValidatedMeals = { meals: [], droppedUnlisted: 0, droppedDiet: [] };
   const meals = (raw as { meals?: unknown })?.meals;
   if (!Array.isArray(meals)) return result;
+  // The prompt named people only by stand-in; any the model wrote back read as the real names.
+  const { restore } = forModel(ctx);
   for (const m of meals) {
     if (!m || typeof m !== 'object') continue;
     const { type, name, parts, extras } = m as Partial<Meal>;
@@ -348,15 +361,15 @@ export function validateMeals(raw: unknown, ctx: MealContext): ValidatedMeals {
     }
     const meal: Meal = {
       type: type as MealType,
-      name: name.trim(),
-      parts: cleanParts.map((p) => ({ ingredients: p.ingredients.map((i) => i.trim()).filter(Boolean), prep: p.prep.trim() })),
+      name: restore(name.trim()),
+      parts: cleanParts.map((p) => ({ ingredients: p.ingredients.map((i) => i.trim()).filter(Boolean), prep: restore(p.prep.trim()) })),
       ...(realExtras.length ? { extras: realExtras } : {}),
     };
     const lang = getLang();
     const localName = (m as { localName?: unknown }).localName;
     const localPrep = parts.map((p) => (p as { localPrep?: unknown }).localPrep);
     if (lang !== 'en' && typeof localName === 'string' && localName.trim() && localPrep.every((p) => typeof p === 'string' && p.trim())) {
-      meal.local = { lang, name: localName.trim().slice(0, 120), prep: (localPrep as string[]).map((p) => p.trim()) };
+      meal.local = { lang, name: restore(localName.trim()).slice(0, 120), prep: (localPrep as string[]).map((p) => restore(p.trim())) };
     }
     meal.levels = mealLevels(meal, rated);
     const limit = heatLimit(ctx.food);

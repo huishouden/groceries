@@ -573,6 +573,7 @@ function HouseholdApp({
             menus={menus}
             favorites={favorites}
             food={food}
+            members={household.members}
             planWeek={planWeek}
             plan={plan ?? []}
             onPlan={(day, type, meal) => settled(planMeal(db, household.id, day, type, meal, email), demo)}

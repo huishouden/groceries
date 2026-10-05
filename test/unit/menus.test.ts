@@ -205,7 +205,7 @@ describe('the prompt', () => {
   it('states the heat cap as a rule, for whom, and leaves it out when anyone may have any heat', () => {
     const base = { have: ['eggs'], onList: [], pantry: PANTRY };
     const none = { people: [{ id: 'a', name: 'Sam', diets: [], avoid: [], spice: 'none' as const }, { id: 'b', name: 'Robin', diets: [], avoid: [], spice: 'none' as const }] };
-    expect(menuPrompt({ ...base, food: none })).toMatch(/HOUSEHOLD RULES[^]*- Heat: every meal not spicy at all, heat 0 of 3 or less \(for Sam and Robin\)\./);
+    expect(menuPrompt({ ...base, food: none })).toMatch(/HOUSEHOLD RULES[^]*- Heat: every meal not spicy at all, heat 0 of 3 or less \(for Person A and Person B\)\./);
     const hot = { people: [{ id: 'a', name: 'Sam', diets: [], avoid: [], spice: 'hot' as const }] };
     expect(menuPrompt({ ...base, food: hot })).not.toContain('- Heat:');
   });
@@ -218,12 +218,42 @@ describe('the prompt', () => {
     expect(prompt).toContain('ON THE LIST: rice');
     expect(prompt).toContain('PANTRY: Assume the kitchen already has salt');
     expect(prompt).toContain('HOUSEHOLD RULES (must all hold for every meal):');
-    expect(prompt).toContain('Sam is pregnant');
-    expect(prompt).toContain('Sam avoids olives');
+    expect(prompt).toContain('Person A is pregnant');
+    expect(prompt).toContain('Person A avoids olives');
     // GERD is a preference, not a rule.
     expect(prompt).toContain('HOUSEHOLD PREFERENCES (most meals, not all):');
     expect(prompt.split('HOUSEHOLD PREFERENCES')[0]).not.toContain('GERD');
-    expect(prompt.split('HOUSEHOLD PREFERENCES')[1]).toContain('Sam has GERD (reflux): most meals, not every one, should follow this');
+    expect(prompt.split('HOUSEHOLD PREFERENCES')[1]).toContain('Person A has GERD (reflux): most meals, not every one, should follow this');
+  });
+
+  it('names nobody: Gemini gets stand-ins with the diets, never a name or email', () => {
+    const food = {
+      people: [
+        { id: 'pat@example.com', name: 'Pat Example', member: 'pat@example.com', diets: ['pregnant' as const, 'gerd' as const], avoid: ['olives'], spice: 'mild' as const, note: 'Pat skips dinner on Fridays' },
+        { id: 'bob@example.com', name: 'Bob', member: 'bob@example.com', diets: ['vegetarian' as const], avoid: [], note: 'Ask bob@example.com about Pat first; kim shops' },
+        { id: 'kid-1', name: 'Noor', diets: ['nut allergy' as const], avoid: [], spice: 'none' as const },
+      ],
+    };
+    // kim is a member who isn't on the food list.
+    const ctx = { have: ['eggs'], onList: ['rice'], pantry: PANTRY, food, members: ['pat@example.com', 'bob@example.com', 'kim@example.org'] };
+    const sent = [menuSystemInstruction(food), menuPrompt(ctx)].join('\n');
+    for (const name of ['Pat', 'Bob', 'Noor', 'Kim']) expect(sent).not.toMatch(new RegExp(`\\b${name}\\b`, 'i'));
+    expect(sent).not.toMatch(/\bExample\b/); // the surname ("for example" is the instructions' own)
+    expect(sent).not.toContain('@');
+    expect(sent).toContain('Person A is pregnant');
+    expect(sent).toContain('Person B is vegetarian');
+    expect(sent).toContain('Person C is allergic to nuts');
+    expect(sent).toContain('About Person B: Ask Person B about Person A first; someone shops.');
+    expect(sent).toContain('(for Person C)');
+  });
+
+  it("puts real names back in anything the model wrote about a stand-in", () => {
+    const food = { people: [{ id: 'a', name: 'Sam', diets: [], avoid: [] }] };
+    const { meals } = validateMeals(
+      { meals: [{ type: 'dinner', name: 'Rice bowl for Person A', parts: [{ ingredients: ['rice', 'eggs'], prep: 'Mild, as Person A likes' }], extras: [], heat: 0 }] },
+      { have: ['eggs'], onList: ['rice'], pantry: PANTRY, food },
+    );
+    expect(meals.map((m) => [m.name, m.parts[0].prep])).toEqual([['Rice bowl for Sam', 'Mild, as Sam likes']]);
   });
 
   it('only pushes coffee at breakfast when nobody avoids caffeine', () => {
