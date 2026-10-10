@@ -4,7 +4,7 @@ import { collection, disableNetwork, doc, initializeFirestore, memoryLocalCache,
 // On a Firestore that didn't come from initFirestore the kit's writes are Firestore's own (no outbox).
 import { writeBatch } from '@huishouden/pwa-kit/firestore';
 import { DAY, HOUR, addDays, toYmd } from '@huishouden/pwa-kit/time';
-import { CATEGORIES, DEFAULT_LISTS, URGENCY, stapleKey, type Category, type Household, type ListItem, type Staple, type Urgency } from './model';
+import { CATEGORIES, newItemPosition, DEFAULT_LISTS, URGENCY, stapleKey, type Category, type Household, type ListItem, type Staple, type Urgency } from './model';
 import { validateMeals, type FavoriteMeal, type Meal, type MealContext, type Menu, type ValidatedMeals } from './menus';
 import type { PlannedMeal } from './mealPlan';
 import type { StoreLayout } from './stores';
@@ -48,7 +48,7 @@ function item(listId: string, name: string, category: Category, now: number, ext
     addedBy: seq % 3 === 0 ? 'Sam' : 'Alex',
     completed: false,
     urgency: URGENCY.NORMAL as Urgency,
-    position: created,
+    position: newItemPosition(extra.urgency === URGENCY.URGENT, created),
     createdAt: created,
     updatedAt: created,
     completedAt: null,
@@ -63,7 +63,7 @@ export function demoItems(now: number): ListItem[] {
   seq = 0;
   const { PRODUCE, DAIRY_EGGS, BAKERY, MEAT_SEAFOOD, PANTRY, BEVERAGES, SNACKS, HOUSEHOLD, HARDWARE_HOME, FROZEN } = CATEGORIES;
   return [
-    item('groceries', 'Eggs', DAIRY_EGGS, now, { quantity: 'a dozen', urgency: URGENCY.URGENT, position: -now }),
+    item('groceries', 'Eggs', DAIRY_EGGS, now, { quantity: 'a dozen', urgency: URGENCY.URGENT }),
     item('groceries', 'Whole milk', DAIRY_EGGS, now),
     item('groceries', 'Bananas', PRODUCE, now),
     item('groceries', 'Baby spinach', PRODUCE, now),
