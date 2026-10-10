@@ -226,11 +226,22 @@ export function groupByAisle(items: ListItem[]): [Category, ListItem[]][] {
   return AISLE_ORDER.filter((c) => groups.has(c)).map((c) => [c, sortItems(groups.get(c)!)]);
 }
 
+const URGENT_POSITION_STEP = 1e13;
+
+/**
+ * Where a new item lands: the top of the open items, newest first. Timestamps negated sort before the
+ * small renumbered positions dragging leaves behind and before older (positive) timestamps; urgent
+ * items sit a fixed step above every ordinary one.
+ */
+export function newItemPosition(urgent: boolean, now: number): number {
+  return urgent ? -now - URGENT_POSITION_STEP : -now;
+}
+
 export function itemPosition(item: ListItem): number {
   return item.position ?? item.createdAt;
 }
 
-/** The household's own order, set by dragging; new items land at the bottom, urgent ones at the top. */
+/** The household's own order, set by dragging; new items land at the top, urgent ones above them. */
 export function sortItems(items: ListItem[]): ListItem[] {
   return [...items].sort((a, b) => itemPosition(a) - itemPosition(b));
 }

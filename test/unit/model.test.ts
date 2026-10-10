@@ -11,12 +11,14 @@ import {
   matchSuggestions,
   shoppingStaples,
   moveInOrder,
+  newItemPosition,
   positionBetween,
   sortItems,
   stapleKey,
   type ListItem,
   type Staple,
 } from '../../src/data/model';
+import { demoItems } from '../../src/data/demo';
 import { topStaples } from '../../src/components/StaplesShelf';
 
 function item(overrides: Partial<ListItem>): ListItem {
@@ -60,6 +62,28 @@ describe('sortItems', () => {
       item({ name: 'urgent', position: -5 }),
     ]);
     expect(sorted.map((i) => i.name)).toEqual(['urgent', 'first', 'legacy', 'second']);
+  });
+});
+
+describe('newItemPosition', () => {
+  it('puts the newest item first, above older timestamps and dragged positions, below urgent ones', () => {
+    const sorted = sortItems([
+      item({ name: 'old', position: 1_780_000_000_000 }),
+      item({ name: 'dragged', position: 1000 }),
+      item({ name: 'first added', position: newItemPosition(false, 1_790_000_000_000) }),
+      item({ name: 'second added', position: newItemPosition(false, 1_790_000_005_000) }),
+      item({ name: 'urgent', position: newItemPosition(true, 1_780_000_000_000) }),
+    ]);
+    expect(sorted.map((i) => i.name)).toEqual(['urgent', 'second added', 'first added', 'dragged', 'old']);
+  });
+});
+
+describe('the sample household', () => {
+  it('lists the urgent item first and the rest newest first', () => {
+    const open = sortItems(demoItems(1_790_000_000_000).filter((i) => !i.completed));
+    expect(open[0].urgency).toBe(URGENCY.URGENT);
+    const rest = open.slice(1);
+    expect(rest.map((i) => i.createdAt)).toEqual(rest.map((i) => i.createdAt).sort((a, b) => b - a));
   });
 });
 
