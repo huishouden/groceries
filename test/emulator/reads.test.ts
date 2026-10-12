@@ -17,8 +17,8 @@ import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
 import { CATEGORIES, DEFAULT_LISTS, URGENCY, type ListItem, type ShoppingList } from '../../src/data/model';
 import type { PlannedMeal } from '../../src/data/mealPlan';
 import { publishAgenda, publishTodos } from '../../src/data/publishSync';
-import { bringInTasks, toTasksSettings, watchTasksSettings } from '../../src/data/googleTasks';
-import { HouseholdRepo } from '../../src/data/store';
+import { bringInTasks, markHandled, toTasksSettings, watchTasksSettings, type TasksSettings } from '../../src/data/googleTasks';
+import { HouseholdRepo, type NewItem } from '../../src/data/store';
 
 const { counter } = await vi.hoisted(async () => ({ counter: (await import('@huishouden/pwa-kit/read-test')).readCounter() }));
 vi.mock('firebase/firestore', async (original) => counter.sdk(await original<object>()));
@@ -101,17 +101,24 @@ describe.skipIf(!emulator)('publishing (planned dinners, the to-buy line): one q
   });
 });
 
-describe.skipIf(!emulator)('bringing Google tasks in: no reads of its own; the listeners bill each new item once', () => {
+describe.skipIf(!emulator)('bringing Google tasks in: no reads of its own; the listeners bill each change once', () => {
   test('three tasks, then the same three from another device: three items, each change read once', async () => {
     const tasks: GoogleTask[] = ['eggs', 'butter', 'apples'].map((name, i) => ({ id: `t${i}`, listId: 'g-shop', title: `Test ${name}`, notes: '', updated: NOW } as GoogleTask));
-    const repo = new HouseholdRepo(db, hh.id);
     const links = [{ googleListId: 'g-shop', title: 'Shopping', listId: 'groceries', mode: 'add' as const }];
-    // This device's listeners on the items and the settings, as the app has them, already started.
+    const device = (settings: () => TasksSettings) => {
+      const repo = new HouseholdRepo(db, hh.id);
+      return { addItem: (input: NewItem) => repo.addItem(input), markHandled: (ids: string[]) => markHandled(db, hh.id, settings(), ids, admin) };
+    };
+    // This device's listeners as the app has them on every screen (useHouseholdData's items and
+    // staples, the Google Tasks settings), already started.
     let seen = 0;
     let settingsSeen = 0;
-    const stopItems = onSnapshot(collection(db, 'households', hh.id, 'items'), (s) => (seen = s.docs.filter((d) => d.id.startsWith('gt-')).length));
     let settings = toTasksSettings(undefined);
-    const stopSettings = watchTasksSettings(db, hh.id, (s) => ((settings = s), settingsSeen++));
+    const stops = [
+      onSnapshot(collection(db, 'households', hh.id, 'items'), (s) => (seen = s.docs.filter((d) => d.id.startsWith('gt-')).length)),
+      onSnapshot(collection(db, 'households', hh.id, 'staples'), () => {}),
+      watchTasksSettings(db, hh.id, (s) => ((settings = s), settingsSeen++)),
+    ];
     const until = async (ok: () => boolean) => {
       for (let i = 0; i < 200 && !ok(); i++) await new Promise((r) => setTimeout(r, 25));
     };
@@ -119,22 +126,21 @@ describe.skipIf(!emulator)('bringing Google tasks in: no reads of its own; the l
     await new Promise((r) => setTimeout(r, 300));
     const { reads } = await expectReads(
       async () => {
-        await bringInTasks(repo, db, hh.id, settings, links, lists, tasks, 'Test', admin);
+        await bringInTasks(device(() => settings), links, lists, tasks, { addedBy: 'Test', by: admin });
         await until(() => seen === 3 && settings.handled.length === 3);
-        // Another device brings in the same tasks at once: the same three documents.
-        await bringInTasks(new HouseholdRepo(db, hh.id), db, hh.id, toTasksSettings(undefined), links, lists, tasks, 'Test', admin);
+        // Another device brings in the same tasks at once: the same three items and staples.
+        await bringInTasks(device(() => toTasksSettings(undefined)), links, lists, tasks, { addedBy: 'Test', by: admin });
         await new Promise((r) => setTimeout(r, 1000));
       },
-      { max: 8, min: 8, counter, label: 'bringing Google tasks in' },
+      { max: 14, min: 14, counter, label: 'bringing Google tasks in' },
     );
-    // Nothing read by the bring-in itself: this device's listeners bill each new item and the
-    // settings once (4), and again when the other device writes the same documents (4). Three
-    // items, not six.
-    expect(reads).toBe(8);
+    // Nothing read by the bring-in itself: this device's listeners bill each new item, its staple
+    // and the settings once (7), and again when the other device writes the same documents (7).
+    // Three items, not six.
+    expect(reads).toBe(14);
     expect(seen).toBe(3);
     expect(settings.handled).toHaveLength(3);
-    stopItems();
-    stopSettings();
+    stops.forEach((stop) => stop());
   });
 });
 

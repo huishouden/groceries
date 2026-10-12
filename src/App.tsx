@@ -33,10 +33,11 @@ import {
   useStoreAisles,
   useStores,
   settled,
+  type NewItem,
 } from './data/store';
 import { DEMO_AUTH, DEMO_EMAIL, DEMO_HOME, DEMO_HOUSEHOLD, openDemo, suggestDemoMeals } from './data/demo';
 import { setHome } from '@huishouden/pwa-kit/home';
-import { bringInTasks, saveGoogleTasksLinks, watchTasksSettings, type TasksSettings } from './data/googleTasks';
+import { bringInTasks, markHandled, saveGoogleTasksLinks, watchTasksSettings, type TasksSettings } from './data/googleTasks';
 import { GoogleTasksSettings } from './components/GoogleTasksSettings';
 import { GoogleTasksSuggestions, useGoogleTasksSuggestions } from '@huishouden/pwa-kit/react/google-tasks';
 import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
@@ -419,7 +420,8 @@ function HouseholdApp({
   const bringIn = useCallback(
     (tasks: GoogleTask[]) => {
       if (!tasksSettings || tasks.length === 0) return;
-      void bringInTasks(repo, db, household.id, tasksSettings, links, data.lists, tasks, addedAs, email).catch(() => {});
+      const target = { addItem: (input: NewItem) => repo.addItem(input), markHandled: (ids: string[]) => markHandled(db, household.id, tasksSettings, ids, email) };
+      void bringInTasks(target, links, data.lists, tasks, { addedBy: addedAs, by: email }).catch(() => {});
     },
     [tasksSettings, links, data.lists, repo, addedAs, db, household.id, email],
   );
