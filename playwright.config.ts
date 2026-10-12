@@ -19,7 +19,7 @@ export default defineConfig({
       // Full app flows against the Auth and Firestore emulators.
       name: 'local',
       testMatch: /.*\.spec\.ts/,
-      testIgnore: /(live|ai|screenshots|signed-in)\.spec\.ts/,
+      testIgnore: /(live|ai|screenshots|signed-in|reads)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5176/groceries/', viewport: { width: 1280, height: 800 } },
     },
     {
@@ -39,6 +39,13 @@ export default defineConfig({
       // Read-only smoke test of the deployed site; never signs in or writes data.
       name: 'live',
       testMatch: /live\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: LIVE_URL },
+    },
+    {
+      // Read budgets of a first open, signed in as a test household's invented people: on the kit's
+      // emulators only (`bun run e2e:emulator`, a build that counts every Firestore read).
+      name: 'reads',
+      testMatch: /reads\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: LIVE_URL },
     },
     {

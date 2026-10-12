@@ -1,7 +1,7 @@
 import { doc, onSnapshot, type Firestore, type Unsubscribe } from 'firebase/firestore';
 import { arrayUnion, setDoc } from '@huishouden/pwa-kit/firestore';
 import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
-import type { ListIcon } from './model';
+import type { ListIcon, ShoppingList } from './model';
 import type { NewItem } from './store';
 
 // Google Tasks into household lists: "add eggs to my list" told to the Gemini app lands in Google
@@ -92,3 +92,27 @@ export function googleTaskItem(task: GoogleTask, link: Pick<GoogleTasksLink, 'li
 
 /** Firestore-safe, the same on every device. */
 export const googleTaskItemId = (taskId: string) => `gt-${taskId.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 200)}`;
+
+/**
+ * Brings Google tasks into the household lists their Google list feeds: each as an item under its
+ * fixed id (two devices bringing in the same task write one item), then all of them marked taken
+ * in. Reads nothing: what is already taken in comes from the item and settings listeners.
+ */
+export function bringInTasks(
+  repo: { addItem(input: NewItem): string | null },
+  db: Firestore,
+  householdId: string,
+  settings: TasksSettings,
+  links: readonly GoogleTasksLink[],
+  lists: readonly Pick<ShoppingList, 'id' | 'icon'>[],
+  tasks: readonly GoogleTask[],
+  addedBy: string,
+  by: string,
+): Promise<void> {
+  for (const t of tasks) {
+    const link = links.find((l) => l.googleListId === t.listId);
+    const list = lists.find((l) => l.id === link?.listId);
+    if (link && list) repo.addItem({ ...googleTaskItem(t, link, list.icon, addedBy), by });
+  }
+  return markHandled(db, householdId, settings, tasks.map((t) => t.id), by);
+}
