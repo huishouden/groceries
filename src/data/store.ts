@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { localizeAgenda, syncAgenda } from '@huishouden/pwa-kit/agenda';
-import { localizeTodos, syncTodos } from '@huishouden/pwa-kit/todos';
-import { APP, agendaItems, todoItems } from './publish';
+import { agendaItems, todoItems } from './publish';
+import { publishAgenda, publishTodos } from './publishSync';
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -649,9 +648,7 @@ export function usePublish(
     const timer = setTimeout(() => {
       const current = latestPlan.current;
       if (!current) return;
-      void localizeAgenda(() => agendaItems(current))
-        .then((items) => syncAgenda(db, householdId, APP, items, { by, restricted }))
-        .catch(() => {});
+      void publishAgenda(db, householdId, by, current, { restricted }).catch(() => {});
     }, PUBLISH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [db, householdId, by, agendaKey, restricted]);
@@ -665,9 +662,7 @@ export function usePublish(
     const timer = setTimeout(() => {
       const current = latestShopping.current;
       if (!current) return;
-      void localizeTodos(() => todoItems(current.lists, current.items))
-        .then((items) => syncTodos(db, householdId, APP, items, { by, restricted }))
-        .catch(() => {});
+      void publishTodos(db, householdId, by, current.lists, current.items, { restricted }).catch(() => {});
     }, PUBLISH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [db, householdId, by, todosKey, restricted]);

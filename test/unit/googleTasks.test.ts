@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { googleTaskItem, googleTaskItemId, toTasksSettings } from '../../src/data/googleTasks';
+import { bringInTasks, googleTaskItem, googleTaskItemId, toTasksSettings } from '../../src/data/googleTasks';
+import type { NewItem } from '../../src/data/store';
 
 const task = { id: 'dGFzay1lZ2dz', listId: 'g2', title: 'Oat milk', notes: 'The barista one', due: '2031-05-16', updated: 0, completed: false };
 
@@ -40,5 +41,21 @@ describe('a Google task on a list', () => {
       googleTaskId: 'dGFzay1lZ2dz',
     });
     expect(googleTaskItemId('a/b c')).toBe('gt-a_b_c');
+  });
+});
+
+describe('bringInTasks', () => {
+  const task = (id: string, listId: string, title: string) => ({ id, listId, title, notes: '', updated: 0, completed: false });
+  it("adds each task to the list its Google list feeds, skips one whose list isn't here, and marks them all taken in", async () => {
+    const added: NewItem[] = [];
+    const handled: string[][] = [];
+    const target = { addItem: (i: NewItem) => (added.push(i), i.id ?? null), markHandled: async (ids: string[]) => void handled.push(ids) };
+    const links = [
+      { googleListId: 'g-shop', title: 'Shopping', listId: 'groceries', mode: 'add' as const },
+      { googleListId: 'g-todo', title: 'To do', listId: 'chores-elsewhere', mode: 'add' as const },
+    ];
+    await bringInTasks(target, links, [{ id: 'groceries', icon: 'grocery' }], [task('t1', 'g-shop', 'Eggs'), task('t2', 'g-todo', 'Mow'), task('t3', 'g-other', 'Call')], { addedBy: 'Sam', by: 'sam@example.com' });
+    expect(added.map((i) => [i.id, i.listId, i.name, i.addedBy, i.by])).toEqual([['gt-t1', 'groceries', 'Eggs', 'Sam', 'sam@example.com']]);
+    expect(handled).toEqual([['t1', 't2', 't3']]);
   });
 });
