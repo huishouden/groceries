@@ -5,8 +5,8 @@ import { signInSilently } from '@huishouden/pwa-kit/auth';
 import { inviteMember, markJoined, removeMember, saveMyProfile } from '@huishouden/pwa-kit/household';
 import { setRole } from '@huishouden/pwa-kit/roles';
 import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
-import { AppBar } from '@huishouden/pwa-kit/react/app-bar';
-import { SampleBanner, ScreenSkeleton, SectionTabs, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
+import { AppFrame, AppOpening, listColumn, type AppFrameProps } from '@huishouden/pwa-kit/react/frame';
+import { SampleBanner, ScreenSkeleton, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
 import { useUrlParam } from '@huishouden/pwa-kit/react/url-state';
 import { CloudOff, CookingPot, ListChecks, Loader2, Store, UtensilsCrossed } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
@@ -59,7 +59,7 @@ import { storeSearchLink } from './data/chains';
 import { MealsView } from './views/MealsView';
 import { planDays, planMeal, unplanMeal } from './data/mealPlan';
 import { trackView } from '@huishouden/pwa-kit/observability';
-import { t, useT } from './i18n';
+import { useT } from './i18n';
 
 
 /** The Huishouden portal, at the root of the site Groceries shares (pwa-kit docs/one-site.md). */
@@ -73,17 +73,32 @@ interface FrameProps {
   onSignOut: () => void;
 }
 
-/** The Huishouden frame (DESIGN.md "Frame"): the kit's app bar over the page. */
-function Frame({ user, signingIn, onSignIn, onSignOut, onSettings, nav, actions, children }: FrameProps & { onSettings?: () => void; nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
+/**
+ * Groceries' frame (the kit's `AppFrame`, DESIGN.md "Frame"): the same props while the app opens and
+ * once the lists are here, so nothing moves between them. A scrolling `<main>` with the list column
+ * inside; with `mode`, the four views as tabs.
+ */
+function groceriesFrame(t: ReturnType<typeof useT>, frame: FrameProps, mode?: { id: string; choose: (id: Mode) => void }): AppFrameProps {
+  return {
+    app: t('app.name'),
+    glyph: 'cart',
+    portalUrl: PORTAL_URL,
+    version: VERSION,
+    ...frame,
+    layout: 'list',
+    // Counts the view on screen (anonymous, per visit; the portal's /privacy page); never while opening.
+    onView: trackView,
+    ...(mode && { tabs: modeTabs(t), tab: mode.id, onTab: (id: string) => mode.choose(id as Mode) }),
+  };
+}
+
+/** A note in the frame instead of the lists (a failure, starting a household), centred in the page. */
+function Plain({ frame, children }: { frame: FrameProps; children: ReactNode }) {
   const t = useT();
   return (
-    <div className="flex h-full flex-col">
-      <AppBar app={t('app.name')} glyph="cart" portalUrl={PORTAL_URL} version={VERSION} user={user} signingIn={signingIn} onSignIn={onSignIn} onSignOut={onSignOut} onSettings={onSettings} settingsLabel={t('settings.open')}>
-        {nav}
-        {actions}
-      </AppBar>
+    <AppFrame {...groceriesFrame(t, frame)} mainClassName="flex flex-col">
       {children}
-    </div>
+    </AppFrame>
   );
 }
 
@@ -102,22 +117,11 @@ function modeTabs(t: ReturnType<typeof useT>): (Tab & { id: Mode })[] {
   ];
 }
 
-/**
- * While the app opens (the session restoring, the household or its lists loading): the frame and the
- * views' tabs over the kit's placeholder, so nothing flashes or jumps before the lists arrive.
- */
-function Opening({ frame }: { frame: FrameProps }) {
+/** While the session restores or the household is found: the kit's opening frame, the view in the address as its tab. */
+function Opening({ frame, phase }: { frame: FrameProps; phase: 'session' | 'household' | 'data' }) {
   const t = useT();
   const [urlMode, setUrlMode] = useUrlParam('mode');
-  return (
-    <Frame {...frame} nav={<SectionTabs tabs={modeTabs(t)} tab={isMode(urlMode) ? urlMode : ''} onTab={(id) => setUrlMode(id)} />}>
-      <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-3xl p-3 sm:p-4">
-          <ScreenSkeleton />
-        </div>
-      </main>
-    </Frame>
-  );
+  return <AppOpening {...groceriesFrame(t, frame, { id: isMode(urlMode) ? urlMode : '', choose: setUrlMode })} phase={phase} />;
 }
 
 function LoadFailure({ error }: { error: FriendlyError }) {
@@ -151,16 +155,14 @@ export default function App() {
   const user = auth.status === 'signed-in' ? auth.user : auth.status === 'loading' ? undefined : null;
   const frame: FrameProps = { user, signingIn, onSignIn, onSignOut };
 
-  if (auth.status === 'loading') {
-    return <Opening frame={frame} />;
-  }
+  if (auth.status === 'loading') return <Opening frame={frame} phase="session" />;
   if (auth.status === 'error') {
     return (
-      <Frame {...frame}>
+      <Plain frame={frame}>
         <Centered>
           <LoadFailure error={friendlyError(new Error(auth.message), 'save')} />
         </Centered>
-      </Frame>
+      </Plain>
     );
   }
   if (auth.status === 'signed-out') return <DemoApp frame={frame} signInError={signInError} />;
@@ -169,6 +171,7 @@ export default function App() {
 
 /** Signed out: the app on an invented household, so it can be tried (and screenshotted) before signing in. */
 function DemoApp({ frame, signInError }: { frame: FrameProps; signInError: FriendlyError | null }) {
+  const t = useT();
   const [db, setDb] = useState<Firestore | null>(null);
   useEffect(() => {
     void openDemo().then(setDb);
@@ -176,9 +179,7 @@ function DemoApp({ frame, signInError }: { frame: FrameProps; signInError: Frien
     setHome(DEMO_HOME);
     return () => setHome(undefined);
   }, []);
-  if (!db) {
-    return <Opening frame={frame} />;
-  }
+  if (!db) return <Opening frame={frame} phase="data" />;
   const banner = (
     <SampleBanner
       text={t('demo.banner')}
@@ -201,23 +202,21 @@ function SignedIn({ db, auth, email, user, frame }: { db: Firestore; auth: Auth;
     if (householdId) saveMyProfile(db, householdId, user).catch(() => {});
   }, [db, householdId, user]);
 
-  if (household.status === 'loading') {
-    return <Opening frame={frame} />;
-  }
+  if (household.status === 'loading') return <Opening frame={frame} phase="household" />;
   if (household.status === 'error') {
     return (
-      <Frame {...frame}>
+      <Plain frame={frame}>
         <Centered>
           <LoadFailure error={friendlyError(new Error(household.message), 'save')} />
         </Centered>
-      </Frame>
+      </Plain>
     );
   }
   if (household.status === 'none') {
     return (
-      <Frame {...frame}>
+      <Plain frame={frame}>
         <Onboarding db={db} email={email} displayName={user.displayName} />
-      </Frame>
+      </Plain>
     );
   }
   return <HouseholdApp db={db} email={email} displayName={user.displayName} household={household.household} frame={frame} auth={auth} />;
@@ -314,10 +313,6 @@ function HouseholdApp({
   // The view and the list on screen live in the address (`?mode=hub&list=pantry`), so a reload (an
   // update) and Back return to them; a bare address opens what this device last showed (useView).
   const { mode, list: selectedId, setMode: switchMode, setList: setSelectedId } = useView(data.loaded ? data.lists : null);
-  // Anonymous counts of which views are used, per visit (the portal's /privacy page).
-  useEffect(() => {
-    trackView(mode);
-  }, [mode]);
   // A link to an item (`?list=<id>&item=<id>`) opens it once the items are here, then leaves the address.
   const [linkedItemId, setLinkedItemId] = useUrlParam('item');
   const [addedAs, setAddedAs] = usePref<string>('addedAs', firstName(displayName, email));
@@ -475,14 +470,95 @@ function HouseholdApp({
   };
   const clearCompleted = (items: ListItem[]) => offerUndo(repo.clearCompleted(items.filter(mayChange)), 'cleared');
 
-  const modes = modeTabs(t);
+  const dialogs = (
+    <>
+
+      {editing && (
+        <EditItemDialog
+          item={editing}
+          lists={data.lists}
+          // The store being shopped first, then the household's other stores, nearest first.
+          storeNames={[...(findStore ? [findStore.name] : []), ...nearest.stores.filter((st) => st !== findStore).map((st) => st.name)]}
+          onSave={(changes) => {
+            repo.updateItem(editing.id, changes);
+            // A corrected aisle sticks: the next time this item is added it lands there.
+            if (changes.category && changes.category !== editing.category) repo.setStapleCategory(changes.name ?? editing.name, changes.category);
+          }}
+          // The dialog holds the item as it was when opened; restore what is stored now.
+          onDelete={() => deleteItem(data.items.find((i) => i.id === editing.id) ?? editing)}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {newList && (
+        <NewListDialog
+          onCreate={(name, icon, color) => setSelectedId(repo.createList(name, icon, color, data.lists.length))}
+          onClose={() => setNewList(false)}
+        />
+      )}
+      {undoAction && (
+        <UndoToast
+          key={undoAction.id}
+          action={undoAction}
+          onDismiss={() => setUndoAction((a) => (a?.id === undoAction.id ? null : a))}
+        />
+      )}
+      {askAisleFor && shoppingStoreId && (() => {
+        const item = data.items.find((i) => i.id === askAisleFor);
+        const store = stores.find((st) => st.id === shoppingStoreId);
+        if (!item || !store || undoAction) return null;
+        return (
+          <AislePrompt
+            key={item.id}
+            itemName={item.name}
+            storeName={store.name}
+            onSave={(aisle) => {
+              repo.setAisle(store.id, item.name, aisle, addedAs);
+              setAskAisleFor(null);
+            }}
+            onSkip={() => setAskAisleFor(null)}
+          />
+        );
+      })()}
+      {reorderLists && <ReorderListsDialog lists={data.lists} onReorder={(ids) => repo.reorderLists(ids)} onClose={() => setReorderLists(false)} />}
+      {settings && (
+        <SettingsDialog
+          household={household}
+          myEmail={email}
+          addedAs={addedAs}
+          setAddedAs={setAddedAs}
+          install={install}
+          googleTasks={
+            !demo && canSetUp && (
+              <GoogleTasksSettings
+                auth={auth}
+                lists={data.lists}
+                taskLists={data.taskLists}
+                links={allLinks}
+                onSave={(next) => saveGoogleTasksLinks(db, household.id, next, email)}
+                onConnected={() => void googleTasks.scan()}
+              />
+            )
+          }
+          onAddMember={(e, r) => inviteMember(db, { ...household, roles: household.roles ?? {} }, e, r)}
+          onRemoveMember={(e) => removeMember(db, { ...household, roles: household.roles ?? {} }, e)}
+          onSetRole={(e, r) => setRole(db, { ...household, roles: household.roles ?? {} }, e, r)}
+          onClose={() => setSettings(false)}
+        />
+      )}
+    </>
+  );
+
+  const frameProps = groceriesFrame(t, frame, { id: mode, choose: switchMode });
+  // The lists still on their way: the opening frame. Trouble reaching them shows under the placeholder in the app's frame.
+  if (!data.loaded && !data.error) return <AppOpening {...frameProps} phase="data" />;
 
   return (
-    <Frame
-      {...frame}
+    <AppFrame
+      {...frameProps}
       onSettings={() => setSettings(true)}
-      nav={<SectionTabs tabs={modes} tab={mode} onTab={(id) => switchMode(id as Mode)} />}
-      actions={
+      settingsLabel={t('settings.open')}
+      mainClassName={undoAction || askAisleFor ? 'pb-20' : undefined}
+      bar={
         <span slot="actions" className="flex items-center gap-1">
           {demo ? null : !online ? (
             <CloudOff size={20} className="text-terracotta" aria-label={t('status.offline')} role="img" />
@@ -491,11 +567,11 @@ function HouseholdApp({
           ) : null}
         </span>
       }
+      after={dialogs}
     >
-      <main className={`min-h-0 flex-1 overflow-y-auto ${undoAction || askAisleFor ? 'pb-20' : ''}`}>
         {banner}
         {!data.loaded ? (
-          <div className="mx-auto w-full max-w-3xl p-3 sm:p-4">
+          <div className={listColumn}>
             <ScreenSkeleton />
             {data.error && (
               <p className="mt-3 max-w-sm text-sm text-muted" role="status">
@@ -625,80 +701,6 @@ function HouseholdApp({
             onMove={(ordered, from, to) => repo.moveItem(ordered, from, to)}
           />
         )}
-      </main>
-
-      {editing && (
-        <EditItemDialog
-          item={editing}
-          lists={data.lists}
-          // The store being shopped first, then the household's other stores, nearest first.
-          storeNames={[...(findStore ? [findStore.name] : []), ...nearest.stores.filter((st) => st !== findStore).map((st) => st.name)]}
-          onSave={(changes) => {
-            repo.updateItem(editing.id, changes);
-            // A corrected aisle sticks: the next time this item is added it lands there.
-            if (changes.category && changes.category !== editing.category) repo.setStapleCategory(changes.name ?? editing.name, changes.category);
-          }}
-          // The dialog holds the item as it was when opened; restore what is stored now.
-          onDelete={() => deleteItem(data.items.find((i) => i.id === editing.id) ?? editing)}
-          onClose={() => setEditing(null)}
-        />
-      )}
-      {newList && (
-        <NewListDialog
-          onCreate={(name, icon, color) => setSelectedId(repo.createList(name, icon, color, data.lists.length))}
-          onClose={() => setNewList(false)}
-        />
-      )}
-      {undoAction && (
-        <UndoToast
-          key={undoAction.id}
-          action={undoAction}
-          onDismiss={() => setUndoAction((a) => (a?.id === undoAction.id ? null : a))}
-        />
-      )}
-      {askAisleFor && shoppingStoreId && (() => {
-        const item = data.items.find((i) => i.id === askAisleFor);
-        const store = stores.find((st) => st.id === shoppingStoreId);
-        if (!item || !store || undoAction) return null;
-        return (
-          <AislePrompt
-            key={item.id}
-            itemName={item.name}
-            storeName={store.name}
-            onSave={(aisle) => {
-              repo.setAisle(store.id, item.name, aisle, addedAs);
-              setAskAisleFor(null);
-            }}
-            onSkip={() => setAskAisleFor(null)}
-          />
-        );
-      })()}
-      {reorderLists && <ReorderListsDialog lists={data.lists} onReorder={(ids) => repo.reorderLists(ids)} onClose={() => setReorderLists(false)} />}
-      {settings && (
-        <SettingsDialog
-          household={household}
-          myEmail={email}
-          addedAs={addedAs}
-          setAddedAs={setAddedAs}
-          install={install}
-          googleTasks={
-            !demo && canSetUp && (
-              <GoogleTasksSettings
-                auth={auth}
-                lists={data.lists}
-                taskLists={data.taskLists}
-                links={allLinks}
-                onSave={(next) => saveGoogleTasksLinks(db, household.id, next, email)}
-                onConnected={() => void googleTasks.scan()}
-              />
-            )
-          }
-          onAddMember={(e, r) => inviteMember(db, { ...household, roles: household.roles ?? {} }, e, r)}
-          onRemoveMember={(e) => removeMember(db, { ...household, roles: household.roles ?? {} }, e)}
-          onSetRole={(e, r) => setRole(db, { ...household, roles: household.roles ?? {} }, e, r)}
-          onClose={() => setSettings(false)}
-        />
-      )}
-    </Frame>
+    </AppFrame>
   );
 }
