@@ -118,7 +118,7 @@ describe('storeItems and tripProgress', () => {
   });
 });
 
-describe('a clock that lags behind (Store mode reads the kit's clock, which moves every 15 s)', () => {
+describe("a clock that lags behind (Store mode reads the kit's clock, which moves every 15 s)", () => {
   it('a check-off made since the last tick starts or extends the trip', () => {
     const lagging = NOW - 50_000;
     expect(tripStart([boughtAgo('Just now', 0)], lagging)).toBe(NOW);
