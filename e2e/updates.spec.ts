@@ -34,3 +34,15 @@ test('a list the household does not have is corrected in the address and not rem
   await page.goto('./');
   await expect(page).toHaveURL(/\?mode=lists&list=pantry$/);
 });
+
+test('a list chosen and then deleted leaves the address, which names the list shown instead', async ({ page }) => {
+  await page.goto('./?mode=lists&list=groceries');
+  await page.locator('nav[aria-label="Lists"]').getByRole('button', { name: 'New list' }).click();
+  await page.getByRole('dialog').getByRole('textbox').first().fill('Garden');
+  await page.getByRole('button', { name: 'Create list' }).click();
+  await expect(heading(page)).toHaveText('Garden');
+  page.once('dialog', (d) => void d.accept());
+  await page.getByRole('button', { name: 'Delete list' }).click();
+  await expect(heading(page)).toHaveText('Groceries');
+  await expect(page).toHaveURL(/\?mode=lists&list=groceries$/);
+});

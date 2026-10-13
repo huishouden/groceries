@@ -44,7 +44,13 @@ export function useView(lists: readonly { id: string }[] | null): {
   const [urlMode] = useUrlParam('mode');
   const [urlList] = useUrlParam('list');
   const chosen = useRef<string | null>(null);
-  const view = resolveView({ mode: urlMode, list: urlList }, { mode: savedMode, list: savedList }, lists?.map((l) => l.id) ?? null, chosen.current);
+  const pinnedAt = useRef<string | undefined>(undefined);
+  // The pin on a chosen list covers only the moment before its snapshot arrives: the next lists
+  // (which carry it, Firestore applying local writes at once) end it, so a list deleted later is
+  // corrected in the address like any other stale id. Decided here, before the choice below.
+  const ids = lists?.map((l) => l.id);
+  if (chosen.current && ids?.join('\n') !== pinnedAt.current) chosen.current = null;
+  const view = resolveView({ mode: urlMode, list: urlList }, { mode: savedMode, list: savedList }, ids ?? null, chosen.current);
   const { mode: saveModeTo, list: saveListTo } = view.save;
   const addressMode = view.address?.mode;
   const addressList = view.address?.list;
@@ -54,10 +60,14 @@ export function useView(lists: readonly { id: string }[] | null): {
     if (addressMode && addressList) setUrlParams({ mode: addressMode, list: addressList }, { replace: true });
   }, [saveModeTo, saveListTo, addressMode, addressList, saveMode, saveList]);
   const setMode = useCallback((mode: Mode) => setUrlParams({ mode }), []);
-  const setList = useCallback((id: string) => {
-    chosen.current = id;
-    setUrlParams({ list: id });
-  }, []);
+  const setList = useCallback(
+    (id: string) => {
+      chosen.current = lists?.some((l) => l.id === id) ? null : id;
+      pinnedAt.current = lists?.map((l) => l.id).join('\n');
+      setUrlParams({ list: id });
+    },
+    [lists],
+  );
   return { mode: view.mode, list: view.list, setMode, setList };
 }
 
