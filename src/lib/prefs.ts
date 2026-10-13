@@ -1,4 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useUrlParam } from '@huishouden/pwa-kit/react/url-state';
+import { setUrlParams } from '@huishouden/pwa-kit/url-state';
+import { resolveView, type Mode } from './view';
 
 /**
  * Where preferences are kept: the signed-out sample household uses its own keys, so trying it
@@ -23,6 +26,49 @@ export function usePref<T>(key: string, initial: T): [T, (value: T) => void] {
     localStorage.setItem(storageKey, JSON.stringify(value));
   }, [storageKey, value]);
   return [value, setValue];
+}
+
+/**
+ * The view and list on screen: in the address (`?mode=&list=`), so a reload (an update) and Back
+ * return to them, and remembered per device (scoped like every pref) for a bare address. `lists` is
+ * null until they load. The rule is `resolveView`. Switching view or list pushes a history entry.
+ */
+export function useView(lists: readonly { id: string }[] | null): {
+  mode: Mode;
+  list: string;
+  setMode: (mode: Mode) => void;
+  setList: (id: string) => void;
+} {
+  const [savedMode, saveMode] = usePref<Mode>('mode', 'lists');
+  const [savedList, saveList] = usePref<string>('list', 'groceries');
+  const [urlMode] = useUrlParam('mode');
+  const [urlList] = useUrlParam('list');
+  const chosen = useRef<string | null>(null);
+  const pinnedAt = useRef<string | undefined>(undefined);
+  // The pin on a chosen list covers only the moment before its snapshot arrives: the next lists
+  // (which carry it, Firestore applying local writes at once) end it, so a list deleted later is
+  // corrected in the address like any other stale id. Decided here, before the choice below.
+  const ids = lists?.map((l) => l.id);
+  if (chosen.current && ids?.join('\n') !== pinnedAt.current) chosen.current = null;
+  const view = resolveView({ mode: urlMode, list: urlList }, { mode: savedMode, list: savedList }, ids ?? null, chosen.current);
+  const { mode: saveModeTo, list: saveListTo } = view.save;
+  const addressMode = view.address?.mode;
+  const addressList = view.address?.list;
+  useEffect(() => {
+    if (saveModeTo) saveMode(saveModeTo);
+    if (saveListTo) saveList(saveListTo);
+    if (addressMode && addressList) setUrlParams({ mode: addressMode, list: addressList }, { replace: true });
+  }, [saveModeTo, saveListTo, addressMode, addressList, saveMode, saveList]);
+  const setMode = useCallback((mode: Mode) => setUrlParams({ mode }), []);
+  const setList = useCallback(
+    (id: string) => {
+      chosen.current = lists?.some((l) => l.id === id) ? null : id;
+      pinnedAt.current = lists?.map((l) => l.id).join('\n');
+      setUrlParams({ list: id });
+    },
+    [lists],
+  );
+  return { mode: view.mode, list: view.list, setMode, setList };
 }
 
 /** Keeps the screen on while the kitchen hub is showing. */
