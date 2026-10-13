@@ -8,7 +8,6 @@ import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
 import { AppBar } from '@huishouden/pwa-kit/react/app-bar';
 import { SampleBanner, ScreenSkeleton, SectionTabs, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
 import { useUrlParam } from '@huishouden/pwa-kit/react/url-state';
-import { setUrlParams } from '@huishouden/pwa-kit/url-state';
 import { CloudOff, CookingPot, ListChecks, Loader2, Store, UtensilsCrossed } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
 import { ErrorNotice } from './components/ErrorNotice';
@@ -45,7 +44,8 @@ import { GoogleTasksSuggestions, useGoogleTasksSuggestions } from '@huishouden/p
 import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
 import { classifyItem, suggestMeals } from './lib/ai';
 import { getFirebase, googleClientId, useEmulators } from './lib/firebase';
-import { PrefScope, useInstallPrompt, useOnline, usePref } from './lib/prefs';
+import { PrefScope, useInstallPrompt, useOnline, usePref, useView } from './lib/prefs';
+import { isMode, type Mode } from './lib/view';
 import { HubView } from './views/HubView';
 import { ListsView } from './views/ListsView';
 import { StoreView } from './views/StoreView';
@@ -61,7 +61,6 @@ import { planDays, planMeal, unplanMeal } from './data/mealPlan';
 import { trackView } from '@huishouden/pwa-kit/observability';
 import { t, useT } from './i18n';
 
-type Mode = 'lists' | 'hub' | 'store' | 'meals';
 
 /** The Huishouden portal, at the root of the site Groceries shares (pwa-kit docs/one-site.md). */
 const PORTAL_URL = '/';
@@ -92,8 +91,6 @@ function Centered({ children }: { children: ReactNode }) {
   return <div className="flex min-h-0 flex-1 items-center justify-center p-6">{children}</div>;
 }
 
-const MODES: readonly Mode[] = ['lists', 'hub', 'store', 'meals'];
-const isMode = (m: string | null): m is Mode => !!m && (MODES as readonly string[]).includes(m);
 
 /** The four views as the app bar's tabs. */
 function modeTabs(t: ReturnType<typeof useT>): (Tab & { id: Mode })[] {
@@ -274,12 +271,6 @@ function Onboarding({ db, email, displayName }: { db: Firestore; email: string; 
   );
 }
 
-/** The list and item a deep link names (`?list=<id>&item=<id>`), read once on open. */
-function linkedItem(): { list: string | null; item: string | null } {
-  const params = new URLSearchParams(window.location.search);
-  return { list: params.get('list'), item: params.get('item') };
-}
-
 function HouseholdApp({
   db,
   email,
@@ -321,36 +312,22 @@ function HouseholdApp({
   usePublish(db, household.id, email, plan, shopping, !demo, role.restricted);
   const repo = useMemo(() => new HouseholdRepo(db, household.id, demo), [db, household.id, demo]);
   // The view and the list on screen live in the address (`?mode=hub&list=pantry`), so a reload (an
-  // update) and Back return to them; a bare address opens what this device last showed. A link to
-  // an item (from the household calendar or a reminder) names only its list: it opens in Lists.
-  const [savedMode, setMode] = usePref<Mode>('mode', 'lists');
-  const [urlMode] = useUrlParam('mode');
-  const [urlList, setUrlList] = useUrlParam('list');
-  const mode: Mode = isMode(urlMode) ? urlMode : urlList && !urlMode ? 'lists' : savedMode;
+  // update) and Back return to them; a bare address opens what this device last showed (useView).
+  const { mode, list: selectedId, setMode: switchMode, setList: setSelectedId } = useView(data.loaded ? data.lists : null);
   // Anonymous counts of which views are used, per visit (the portal's /privacy page).
   useEffect(() => {
     trackView(mode);
   }, [mode]);
-  const [savedId, setSavedId] = usePref<string>('list', 'groceries');
-  const selectedId = urlList ?? savedId;
-  const setSelectedId = useCallback((id: string) => setUrlList(id), [setUrlList]);
-  useEffect(() => {
-    if (urlList) setSavedId(urlList);
-    if (isMode(urlMode)) setMode(urlMode);
-    // A bare address names what it shows, so Back from another view or list returns to this one.
-    if (!urlList || !isMode(urlMode)) setUrlParams({ mode, list: selectedId }, { replace: true });
-  }, [urlList, urlMode, mode, selectedId, setSavedId, setMode]);
-  const [link, setLink] = useState(linkedItem);
+  // A link to an item (`?list=<id>&item=<id>`) opens it once the items are here, then leaves the address.
+  const [linkedItemId, setLinkedItemId] = useUrlParam('item');
   const [addedAs, setAddedAs] = usePref<string>('addedAs', firstName(displayName, email));
   const [editing, setEditing] = useState<ListItem | null>(null);
   useEffect(() => {
-    if (!data.loaded || (!link.list && !link.item)) return;
-    const item = link.item ? data.items.find((i) => i.id === link.item) : undefined;
+    if (!data.loaded || !linkedItemId) return;
+    const item = data.items.find((i) => i.id === linkedItemId);
     if (item && mayChangeItem(item, role.role, email)) setEditing(item);
-    setLink({ list: null, item: null });
-    // The item opened once; the view and the list stay in the address.
-    setUrlParams({ item: null }, { replace: true });
-  }, [data.loaded, data.items, link]);
+    setLinkedItemId(null, { replace: true });
+  }, [data.loaded, data.items, linkedItemId, setLinkedItemId]);
   const [newList, setNewList] = useState(false);
   const [reorderLists, setReorderLists] = useState(false);
   const [settings, setSettings] = useState(false);
@@ -465,7 +442,6 @@ function HouseholdApp({
   // arrives, and resetting the saved choice then would jump back to the first list.
   const selectedList: ShoppingList | undefined = data.lists.find((l) => l.id === selectedId) ?? data.lists[0];
 
-  const switchMode = (m: Mode) => setUrlParams({ mode: m });
 
   const add = (req: AddRequest) => {
     if (!selectedList) return;
@@ -524,7 +500,7 @@ function HouseholdApp({
             {data.error && (
               <p className="mt-3 max-w-sm text-sm text-muted" role="status">
                 {t('status.connecting')}
-                <span className="mt-1 block text-xs text-muted">{data.error}</span>
+                <span className="mt-1 block text-xs text-muted">{friendlyError(new Error(data.error), 'save').message}</span>
               </p>
             )}
           </div>

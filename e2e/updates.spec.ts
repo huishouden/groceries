@@ -25,3 +25,12 @@ test('a reload and Back return to the screen in the address', async ({ page }) =
   await page.goForward();
   await expect(current(page)).toHaveText('Kitchen');
 });
+
+test('a list the household does not have is corrected in the address and not remembered', async ({ page }) => {
+  await page.goto('./?mode=lists&list=pantry');
+  await expect(heading(page)).toHaveText('Pantry Restock');
+  await page.goto('./?mode=lists&list=no-such-list');
+  await expect(page).toHaveURL(/\?mode=lists&list=pantry$/);
+  await page.goto('./');
+  await expect(page).toHaveURL(/\?mode=lists&list=pantry$/);
+});
