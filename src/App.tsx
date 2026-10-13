@@ -59,6 +59,7 @@ import { storeSearchLink } from './data/chains';
 import { MealsView } from './views/MealsView';
 import { planDays, planMeal, unplanMeal } from './data/mealPlan';
 import { trackView } from '@huishouden/pwa-kit/observability';
+import { ClockProvider } from '@huishouden/pwa-kit/react/clock';
 import { useT } from './i18n';
 
 
@@ -561,144 +562,146 @@ function HouseholdApp({
   }
 
   return (
-    <AppFrame
-      {...frameProps}
-      onSettings={() => setSettings(true)}
-      settingsLabel={t('settings.open')}
-      mainClassName={undoAction || askAisleFor ? 'pb-20' : undefined}
-      bar={
-        <span slot="actions" className="flex items-center gap-1">
-          {demo ? null : !online ? (
-            <CloudOff size={20} className="text-attention" aria-label={t('status.offline')} role="img" />
-          ) : data.pendingWrites ? (
-            <Loader2 size={18} className="animate-spin text-muted" aria-label={t('status.syncing')} role="img" />
-          ) : null}
-        </span>
-      }
-      after={dialogs}
-    >
-        {banner}
-        {!selectedList ? (
-          <Centered>
-            <div className="grid max-w-sm justify-items-center gap-3 text-center">
-              <p className="text-muted">{t('lists.none')}</p>
-              {canSetUp ? (
+    <ClockProvider read={Date.now}>
+      <AppFrame
+        {...frameProps}
+        onSettings={() => setSettings(true)}
+        settingsLabel={t('settings.open')}
+        mainClassName={undoAction || askAisleFor ? 'pb-20' : undefined}
+        bar={
+          <span slot="actions" className="flex items-center gap-1">
+            {demo ? null : !online ? (
+              <CloudOff size={20} className="text-attention" aria-label={t('status.offline')} role="img" />
+            ) : data.pendingWrites ? (
+              <Loader2 size={18} className="animate-spin text-muted" aria-label={t('status.syncing')} role="img" />
+            ) : null}
+          </span>
+        }
+        after={dialogs}
+      >
+          {banner}
+          {!selectedList ? (
+            <Centered>
+              <div className="grid max-w-sm justify-items-center gap-3 text-center">
+                <p className="text-muted">{t('lists.none')}</p>
+                {canSetUp ? (
+                  <>
+                    <button onClick={() => repo.restoreDefaultLists()} className={primaryButton}>
+                      {t('lists.addDefaults')}
+                    </button>
+                    <button onClick={() => setNewList(true)} className="text-sm text-muted underline">
+                      {t('lists.createOwn')}
+                    </button>
+                  </>
+                ) : (
+                  <RoleNote action="change-settings" />
+                )}
+              </div>
+            </Centered>
+          ) : mode === 'hub' ? (
+            <HubView
+              lists={data.lists}
+              items={data.items}
+              staples={data.staples}
+              selectedList={selectedList}
+              onSelectList={setSelectedId}
+              onAdd={add}
+              onAddStaple={addStaple}
+              onForgetStaple={forgetStaple}
+              onToggle={toggle}
+             
+              aisle={aisleProps}
+              onEdit={(item) => mayChange(item) && setEditing(item)}
+              mayChange={mayChange}
+              onMove={(ordered, from, to) => repo.moveItem(ordered, from, to)}
+            />
+          ) : mode === 'meals' ? (
+            <MealsView
+              lists={data.lists}
+              items={data.items}
+              menus={menus}
+              favorites={favorites}
+              food={food}
+              members={household.members}
+              planWeek={planWeek}
+              plan={plan ?? []}
+              onPlan={(day, type, meal) => settled(planMeal(db, household.id, day, type, meal, email), demo)}
+              onUnplan={(day, type) => settled(unplanMeal(db, household.id, day, type), demo)}
+              suggest={demo ? suggestDemoMeals : suggestMeals}
+              onSave={(ingredients, meals) => repo.saveMenu(ingredients, meals, addedAs)}
+              onDelete={(id) => {
+                const menu = menus.find((m) => m.id === id);
+                repo.deleteMenu(id);
+                if (menu) {
+                  const undoId = ++undoCount.current;
+                  setUndoAction({ id: undoId, message: t('undo.deletedIdeas', { count: menu.meals.length }), undo: () => void repo.restoreMenu(menu) });
+                }
+              }}
+              onSaveFavorite={(meal) => repo.saveFavorite(meal, addedAs)}
+              onRemoveFavorite={(id) => repo.removeFavorite(id)}
+              onAddItems={(listId, names, notes) =>
+                names.forEach((name) => repo.addItem({ listId, listIcon: data.lists.find((l) => l.id === listId)?.icon, name, notes, addedBy: addedAs, by: email }))
+              }
+              readOnly={!canSetUp}
+            />
+          ) : mode === 'store' ? (
+            <StoreView
+              lists={data.lists}
+              items={data.items}
+              selectedList={selectedList}
+              onSelectList={setSelectedId}
+              onToggle={toggle}
+             
+              aisle={aisleProps}
+              onClearCompleted={clearCompleted}
+              stores={nearest.stores}
+              distances={origin ? { meters: nearest.meters, from: origin.from } : undefined}
+              storeId={storeId}
+              onSelectStore={(id) => {
+                if (id) startShopping(id);
+                else {
+                  setStoreId(null);
+                  endShopping();
+                }
+              }}
+              aisles={aisles}
+              banner={storeBanner}
+              canSetUp={canSetUp}
+              onCreateStore={(name) => repo.createStore(name, [])}
+              onUpdateStore={(id, changes) => repo.updateStore(id, changes)}
+              onDeleteStore={(id) => repo.deleteStore(id)}
+            />
+          ) : (
+            <ListsView
+              lists={data.lists}
+              items={data.items}
+              staples={data.staples}
+              selectedList={selectedList}
+              onSelectList={setSelectedId}
+              onNewList={() => setNewList(true)}
+              onReorderLists={() => setReorderLists(true)}
+              banner={
                 <>
-                  <button onClick={() => repo.restoreDefaultLists()} className={primaryButton}>
-                    {t('lists.addDefaults')}
-                  </button>
-                  <button onClick={() => setNewList(true)} className="text-sm text-muted underline">
-                    {t('lists.createOwn')}
-                  </button>
+                  {googleTasksCard}
+                  {shoppingHere ? storeBanner : null}
                 </>
-              ) : (
-                <RoleNote action="change-settings" />
-              )}
-            </div>
-          </Centered>
-        ) : mode === 'hub' ? (
-          <HubView
-            lists={data.lists}
-            items={data.items}
-            staples={data.staples}
-            selectedList={selectedList}
-            onSelectList={setSelectedId}
-            onAdd={add}
-            onAddStaple={addStaple}
-            onForgetStaple={forgetStaple}
-            onToggle={toggle}
-           
-            aisle={aisleProps}
-            onEdit={(item) => mayChange(item) && setEditing(item)}
-            mayChange={mayChange}
-            onMove={(ordered, from, to) => repo.moveItem(ordered, from, to)}
-          />
-        ) : mode === 'meals' ? (
-          <MealsView
-            lists={data.lists}
-            items={data.items}
-            menus={menus}
-            favorites={favorites}
-            food={food}
-            members={household.members}
-            planWeek={planWeek}
-            plan={plan ?? []}
-            onPlan={(day, type, meal) => settled(planMeal(db, household.id, day, type, meal, email), demo)}
-            onUnplan={(day, type) => settled(unplanMeal(db, household.id, day, type), demo)}
-            suggest={demo ? suggestDemoMeals : suggestMeals}
-            onSave={(ingredients, meals) => repo.saveMenu(ingredients, meals, addedAs)}
-            onDelete={(id) => {
-              const menu = menus.find((m) => m.id === id);
-              repo.deleteMenu(id);
-              if (menu) {
-                const undoId = ++undoCount.current;
-                setUndoAction({ id: undoId, message: t('undo.deletedIdeas', { count: menu.meals.length }), undo: () => void repo.restoreMenu(menu) });
               }
-            }}
-            onSaveFavorite={(meal) => repo.saveFavorite(meal, addedAs)}
-            onRemoveFavorite={(id) => repo.removeFavorite(id)}
-            onAddItems={(listId, names, notes) =>
-              names.forEach((name) => repo.addItem({ listId, listIcon: data.lists.find((l) => l.id === listId)?.icon, name, notes, addedBy: addedAs, by: email }))
-            }
-            readOnly={!canSetUp}
-          />
-        ) : mode === 'store' ? (
-          <StoreView
-            lists={data.lists}
-            items={data.items}
-            selectedList={selectedList}
-            onSelectList={setSelectedId}
-            onToggle={toggle}
-           
-            aisle={aisleProps}
-            onClearCompleted={clearCompleted}
-            stores={nearest.stores}
-            distances={origin ? { meters: nearest.meters, from: origin.from } : undefined}
-            storeId={storeId}
-            onSelectStore={(id) => {
-              if (id) startShopping(id);
-              else {
-                setStoreId(null);
-                endShopping();
-              }
-            }}
-            aisles={aisles}
-            banner={storeBanner}
-            canSetUp={canSetUp}
-            onCreateStore={(name) => repo.createStore(name, [])}
-            onUpdateStore={(id, changes) => repo.updateStore(id, changes)}
-            onDeleteStore={(id) => repo.deleteStore(id)}
-          />
-        ) : (
-          <ListsView
-            lists={data.lists}
-            items={data.items}
-            staples={data.staples}
-            selectedList={selectedList}
-            onSelectList={setSelectedId}
-            onNewList={() => setNewList(true)}
-            onReorderLists={() => setReorderLists(true)}
-            banner={
-              <>
-                {googleTasksCard}
-                {shoppingHere ? storeBanner : null}
-              </>
-            }
-            onDeleteList={(l) => void repo.deleteList(l.id)}
-            canSetUp={canSetUp}
-            mayChange={mayChange}
-            onAdd={add}
-            onAddStaple={addStaple}
-            onForgetStaple={forgetStaple}
-            onToggle={toggle}
-           
-            aisle={aisleProps}
-            onEdit={(item) => mayChange(item) && setEditing(item)}
-            onDelete={deleteItem}
-            onClearCompleted={clearCompleted}
-            onMove={(ordered, from, to) => repo.moveItem(ordered, from, to)}
-          />
-        )}
-    </AppFrame>
+              onDeleteList={(l) => void repo.deleteList(l.id)}
+              canSetUp={canSetUp}
+              mayChange={mayChange}
+              onAdd={add}
+              onAddStaple={addStaple}
+              onForgetStaple={forgetStaple}
+              onToggle={toggle}
+             
+              aisle={aisleProps}
+              onEdit={(item) => mayChange(item) && setEditing(item)}
+              onDelete={deleteItem}
+              onClearCompleted={clearCompleted}
+              onMove={(ordered, from, to) => repo.moveItem(ordered, from, to)}
+            />
+          )}
+      </AppFrame>
+    </ClockProvider>
   );
 }

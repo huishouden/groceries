@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Check, ChevronDown, House, LocateFixed, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import { formatDistance } from '@huishouden/pwa-kit/places';
+import { useClock } from '@huishouden/pwa-kit/react/clock';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { RoleNote } from '@huishouden/pwa-kit/react/roles';
 import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
@@ -106,16 +107,6 @@ function cleanLabels(labels: Partial<Record<Category, string>>): Partial<Record<
   return Object.fromEntries(Object.entries(labels).flatMap(([k, v]) => (v?.trim() ? [[k, v.trim()]] : [])));
 }
 
-/** The time, a minute at a time: a trip ends on screen three hours after its last check-off, even when nothing else changes. */
-function useMinuteClock(): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
-
 /** In-store checklist walked section by section in the chosen store's order. */
 export function StoreView(props: Props) {
   const { lists, items, selectedList, stores, storeId, onSelectStore } = props;
@@ -128,8 +119,9 @@ export function StoreView(props: Props) {
   const store = stores.find((s) => s.id === storeId) ?? null;
   // Only this trip: what is left, and what was ticked off since the trip began, on any of the
   // household's shopping lists (one trip can cover several). Earlier buys stay on the list, out of the way.
-  // A check-off made since the last tick is stamped after `now`; tripStart counts it as now.
-  const now = useMinuteClock();
+  // The kit's clock moves every 15 s, so a trip ends on screen even when nothing else changes. A
+  // check-off made since the last tick is stamped after `now`; tripStart counts it as now.
+  const { now } = useClock();
   const start = useMemo(() => tripStart(items, now), [items, now]);
   const listItems = useMemo(() => storeItems(items.filter((i) => i.listId === selectedList.id), start), [items, selectedList.id, start]);
   const { done, total } = tripProgress(listItems);
