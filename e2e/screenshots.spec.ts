@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { captureScreenshot } from '@huishouden/pwa-kit/e2e';
+import { captureOpening, captureScreenshot } from '@huishouden/pwa-kit/e2e';
 
 // README images and CI's before/after evidence: the signed-out app's invented household (src/data/demo.ts)
 // on the site at BASE_URL. The clock is frozen on an obviously invented Monday morning so every run
@@ -11,6 +11,9 @@ const mode = async (p: Page, name: string) => {
   await ready(p);
   await p.getByRole('button', { name, exact: true }).click();
 };
+
+// The frame while the app opens (the session restoring), held there: the kit's AppOpening.
+test('opening', ({ page }) => captureOpening(page, 'opening', { path: './?mode=lists', fixedTime }));
 
 test('lists', ({ page }) =>
   captureScreenshot(page, 'lists', { fixedTime, prepare: async (p) => {
