@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useClock } from '@huishouden/pwa-kit/react/clock';
 import { AddBar, type AddRequest } from '../components/AddBar';
 import { ItemRow, aisleRowProps, type AisleProps } from '../components/ItemRow';
 import { SortableItems } from '../components/SortableItems';
@@ -28,25 +29,16 @@ interface Props {
   onMove: (ordered: ListItem[], from: number, to: number) => void;
 }
 
-function useClock(): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
-
 /** Always-on kitchen tablet layout: big targets, screen kept awake. */
 export function HubView(props: Props) {
   const t = useT();
   const { lists, items, staples, selectedList } = props;
   useWakeLock(true);
-  const now = useClock();
+  const { now } = useClock();
   const listItems = useMemo(() => items.filter((i) => i.listId === selectedList.id), [items, selectedList.id]);
   const pending = sortItems(listItems.filter((i) => !i.completed));
   const recentlyDone = listItems
-    .filter((i) => i.completed && i.completedAt && now.getTime() - i.completedAt < 6 * 60 * 60 * 1000)
+    .filter((i) => i.completed && i.completedAt && now - i.completedAt < 6 * 60 * 60 * 1000)
     .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))
     .slice(0, 5);
 
@@ -54,8 +46,8 @@ export function HubView(props: Props) {
     <div className="grid h-full min-h-0 gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <section className="flex min-h-0 flex-col gap-5">
         <div>
-          <p className="text-5xl font-light tabular-nums">{formatTime(now.getTime())}</p>
-          <p className="text-lg text-muted">{capitalize(formatDayLong(now.getTime()))}</p>
+          <p className="text-5xl font-light tabular-nums">{formatTime(now)}</p>
+          <p className="text-lg text-muted">{capitalize(formatDayLong(now))}</p>
         </div>
         {lists.length > 1 && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

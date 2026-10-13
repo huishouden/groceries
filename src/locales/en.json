@@ -135,6 +135,7 @@
   "store.deleteConfirm": "Delete {store}?",
   "store.progress": "{done} of {total} in cart",
   "store.empty": "This list is empty.",
+  "store.nothingLeft": "Nothing left to get on this list.",
   "store.left": "{count} left",
   "store.inCart": "In cart",
   "store.inCartCount": "In cart ({count})",

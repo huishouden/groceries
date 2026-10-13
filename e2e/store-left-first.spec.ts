@@ -13,22 +13,25 @@ test.beforeEach(async ({ page }) => {
 
 test('in Store mode, what is left comes first and done sections fold into In cart', async ({ page }) => {
   await page.getByRole('button', { name: 'Store', exact: true }).click();
+  // Only this trip: the salmon, zucchini and peppers bought days ago stay out of the way.
+  await expect(page.getByText(/^0 of 9 in cart$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark Zucchini not done' })).toHaveCount(0);
   // Check off everything but the frozen peas.
   for (const name of ['Eggs', 'Whole milk', 'Bananas', 'Baby spinach', 'Sourdough bread', 'Chicken thighs', 'Greek yogurt', 'Coffee beans']) {
     await page.getByRole('button', { name: `Mark ${name} done` }).click();
   }
-  await expect(page.getByText(/^11 of 12 in cart$/)).toBeVisible();
+  await expect(page.getByText(/^8 of 9 in cart$/)).toBeVisible();
   const rows = page.getByRole('button', { name: /^Mark .* (not )?done$/ });
   await expect(rows.first()).toHaveAccessibleName('Mark Frozen peas done');
   await expect(rows.first()).toBeInViewport();
   await expect(page.locator('h2').filter({ hasText: /left/ })).toHaveText([/Frozen Foods/]);
 
   // Checked items wait folded; opening the group lets one be un-checked.
-  const inCart = page.getByRole('button', { name: 'In cart (11)' });
+  const inCart = page.getByRole('button', { name: 'In cart (8)' });
   await expect(inCart).toHaveAttribute('aria-expanded', 'false');
   await inCart.click();
   await page.getByRole('button', { name: 'Mark Eggs not done' }).click();
-  await expect(page.getByText(/^10 of 12 in cart$/)).toBeVisible();
+  await expect(page.getByText(/^7 of 9 in cart$/)).toBeVisible();
   await expect(page.locator('h2').filter({ hasText: /left/ })).toHaveText([/Dairy & Eggs/, /Frozen Foods/]);
 });
 

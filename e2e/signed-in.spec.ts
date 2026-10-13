@@ -70,3 +70,48 @@ test('what is left to buy shows as one Groceries line on the portal’s To-do li
   await expect(line.locator('a[href*="/groceries/"]').first()).toBeVisible();
   await expect(line.locator('[data-todo-action]')).toHaveCount(0);
 });
+
+test('Store mode shows only this trip: last trip’s bought items stay out of the way, and a fresh tick can be undone', async ({ browser }) => {
+  const now = Date.now();
+  const DAY = 86_400_000;
+  const by = hh.users.admin.email;
+  const item = (name: string, category: string, completedAgo: number | null) => ({
+    listId: 'trip', name, category, quantity: '1', notes: '', addedBy: 'Test', by, urgency: 'Standard',
+    completed: completedAgo !== null, completedAt: completedAgo === null ? null : now - completedAgo,
+    position: -(now - 12 * DAY), createdAt: now - 12 * DAY, updatedAt: now - (completedAgo ?? 12 * DAY),
+  });
+  // Its own list, so the other tests' items don't change the count. Bought 11 days ago, then
+  // added again (other case, other plural); and one thing ticked off half an hour ago, this trip.
+  await hh.write({
+    'lists/trip': { name: 'Test trip', description: '', icon: 'grocery', color: '#2d6a4f', sortOrder: 9, createdAt: now - 30 * DAY },
+    'items/trip-old-bananas': item('test bananas', 'Produce & Greens', 11 * DAY),
+    'items/trip-old-avocados': item('3 test avocados', 'Produce & Greens', 11 * DAY),
+    'items/trip-bananas': item('Test Bananas', 'Produce & Greens', null),
+    'items/trip-avocado': item('Test avocado', 'Produce & Greens', null),
+    'items/trip-milk': item('Test oat milk', 'Dairy & Eggs', 30 * 60_000),
+  });
+  const page = await hh.open(browser, 'admin', './?mode=store');
+  await page.getByRole('button', { name: 'Test trip', exact: true }).click({ timeout: 30_000 });
+  await expect(page.locator('main h1')).toHaveText('Test trip');
+
+  // The old ones are hidden and not counted: the two to get and the milk from this trip.
+  await expect(page.getByText(/^1 of 3 in cart$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark test bananas not done', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mark 3 test avocados not done', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mark Test Bananas done', exact: true })).toBeVisible();
+
+  // Ticked off now, it stays in its section as ticked, counted in the cart; un-ticked, it is back to get.
+  await page.getByRole('button', { name: 'Mark Test Bananas done', exact: true }).click();
+  await expect(page.getByText(/^2 of 3 in cart$/)).toBeVisible();
+  const ticked = page.getByRole('button', { name: 'Mark Test Bananas not done', exact: true });
+  await expect(ticked).toBeVisible();
+  await ticked.click();
+  await expect(page.getByText(/^1 of 3 in cart$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark Test Bananas done', exact: true })).toBeVisible();
+
+  // Hidden, not gone: Lists still shows them under what was bought, until Clear bought.
+  await page.getByRole('button', { name: 'Lists', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Done (3)' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark test bananas not done', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Mark 3 test avocados not done', exact: true })).toBeVisible();
+});

@@ -34,11 +34,23 @@ test('meals', ({ page }) =>
     await expect(p.getByRole('button', { name: 'Suggest meals' })).toBeEnabled({ timeout: 10_000 });
   } }));
 
+// Store mode mid-trip at the evidence's own size (tablet columns get a tablet): one thing ticked
+// off stays in its section; what was bought days ago is not shown.
+test('store', ({ page }) =>
+  captureScreenshot(page, 'store', { fixedTime, prepare: async (p) => {
+    await mode(p, 'Store');
+    await p.getByRole('button', { name: 'Mark Bananas done' }).click();
+    await expect(p.getByText(/^1 of 9 in cart$/)).toBeVisible();
+  } }));
+
 test('phone: store', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, 'store-phone', { fixedTime, prepare: async (p) => {
     await mode(p, 'Store');
     await expect(p.getByText('Baby spinach')).toBeVisible();
+    // Mid-trip: one thing ticked off stays in its section; what was bought days ago is not shown.
+    await p.getByRole('button', { name: 'Mark Bananas done' }).click();
+    await expect(p.getByText(/^1 of 9 in cart$/)).toBeVisible();
   } });
 });
 
