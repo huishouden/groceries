@@ -5,8 +5,8 @@ import { signInSilently } from '@huishouden/pwa-kit/auth';
 import { inviteMember, markJoined, removeMember, saveMyProfile } from '@huishouden/pwa-kit/household';
 import { setRole } from '@huishouden/pwa-kit/roles';
 import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
-import { AppFrame, AppOpening, listColumn, type AppFrameProps } from '@huishouden/pwa-kit/react/frame';
-import { SampleBanner, ScreenSkeleton, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
+import { AppFrame, AppOpening, type AppFrameProps } from '@huishouden/pwa-kit/react/frame';
+import { SampleBanner, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
 import { useUrlParam } from '@huishouden/pwa-kit/react/url-state';
 import { CloudOff, CookingPot, ListChecks, Loader2, Store, UtensilsCrossed } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
@@ -549,8 +549,16 @@ function HouseholdApp({
   );
 
   const frameProps = groceriesFrame(t, frame, { id: mode, choose: switchMode });
-  // The lists still on their way: the opening frame. Trouble reaching them shows under the placeholder in the app's frame.
-  if (!data.loaded && !data.error) return <AppOpening {...frameProps} phase="data" />;
+  // The lists still on their way: the opening frame; trouble reaching them is its note.
+  if (!data.loaded) {
+    const note = data.error ? (
+      <>
+        {t('status.connecting')}
+        <span className="mt-1 block text-xs text-muted">{friendlyError(new Error(data.error), 'save').message}</span>
+      </>
+    ) : undefined;
+    return <AppOpening {...frameProps} phase="data" note={note} />;
+  }
 
   return (
     <AppFrame
@@ -570,17 +578,7 @@ function HouseholdApp({
       after={dialogs}
     >
         {banner}
-        {!data.loaded ? (
-          <div className={listColumn}>
-            <ScreenSkeleton />
-            {data.error && (
-              <p className="mt-3 max-w-sm text-sm text-muted" role="status">
-                {t('status.connecting')}
-                <span className="mt-1 block text-xs text-muted">{friendlyError(new Error(data.error), 'save').message}</span>
-              </p>
-            )}
-          </div>
-        ) : !selectedList ? (
+        {!selectedList ? (
           <Centered>
             <div className="grid max-w-sm justify-items-center gap-3 text-center">
               <p className="text-muted">{t('lists.none')}</p>
