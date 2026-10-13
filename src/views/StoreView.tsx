@@ -106,6 +106,16 @@ function cleanLabels(labels: Partial<Record<Category, string>>): Partial<Record<
   return Object.fromEntries(Object.entries(labels).flatMap(([k, v]) => (v?.trim() ? [[k, v.trim()]] : [])));
 }
 
+/** The time, a minute at a time: a trip ends on screen three hours after its last check-off, even when nothing else changes. */
+function useMinuteClock(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 /** In-store checklist walked section by section in the chosen store's order. */
 export function StoreView(props: Props) {
   const { lists, items, selectedList, stores, storeId, onSelectStore } = props;
@@ -118,7 +128,9 @@ export function StoreView(props: Props) {
   const store = stores.find((s) => s.id === storeId) ?? null;
   // Only this trip: what is left, and what was ticked off since the trip began, on any of the
   // household's shopping lists (one trip can cover several). Earlier buys stay on the list, out of the way.
-  const start = tripStart(items, Date.now());
+  // A check-off made since the last tick is stamped after `now`; tripStart counts it as now.
+  const now = useMinuteClock();
+  const start = useMemo(() => tripStart(items, now), [items, now]);
   const listItems = useMemo(() => storeItems(items.filter((i) => i.listId === selectedList.id), start), [items, selectedList.id, start]);
   const { done, total } = tripProgress(listItems);
   const onList = items.some((i) => i.listId === selectedList.id);

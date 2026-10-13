@@ -117,3 +117,11 @@ describe('storeItems and tripProgress', () => {
     expect(tripProgress(storeItems(shopping, tripStart(shopping, NOW)))).toEqual({ done: 3, total: 9 });
   });
 });
+
+describe('a clock that lags a minute behind (Store mode re-reads the time once a minute)', () => {
+  it('a check-off made since the last tick starts or extends the trip', () => {
+    const lagging = NOW - 50_000;
+    expect(tripStart([boughtAgo('Just now', 0)], lagging)).toBe(NOW);
+    expect(tripStart([boughtAgo('Just now', 0), boughtAgo('Earlier', 2 * HOUR)], lagging)).toBe(NOW - 2 * HOUR);
+  });
+});
