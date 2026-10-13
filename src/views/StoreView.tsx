@@ -8,6 +8,7 @@ import { SortableRows } from '../components/SortableRows';
 import { Chip, ghostButton, inputClass, primaryButton } from '../components/ui';
 import { categoryLabel, listName, moveInOrder, stapleKey, type Category, type ListItem, type ShoppingList } from '../data/model';
 import { fullCategoryOrder, groupWithAisles, leftFirst, type GeoPoint, type StoreLayout } from '../data/stores';
+import { storeItems, tripProgress, tripStart } from '../data/trip';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { useWakeLock } from '../lib/prefs';
 import { t, useT } from '../i18n';
@@ -115,9 +116,12 @@ export function StoreView(props: Props) {
   const [newName, setNewName] = useState('');
 
   const store = stores.find((s) => s.id === storeId) ?? null;
-  const listItems = useMemo(() => items.filter((i) => i.listId === selectedList.id), [items, selectedList.id]);
-  const total = listItems.length;
-  const done = listItems.filter((i) => i.completed).length;
+  // Only this trip: what is left, and what was ticked off since the trip began, on any of the
+  // household's shopping lists (one trip can cover several). Earlier buys stay on the list, out of the way.
+  const start = tripStart(items, Date.now());
+  const listItems = useMemo(() => storeItems(items.filter((i) => i.listId === selectedList.id), start), [items, selectedList.id, start]);
+  const { done, total } = tripProgress(listItems);
+  const onList = items.some((i) => i.listId === selectedList.id);
   const progress = total === 0 ? 0 : done / total;
   const { open: sections, inCart } = leftFirst(groupWithAisles(listItems, props.aisles, store?.categoryOrder, store?.aisleLabels, stapleKey));
   const [showCart, setShowCart] = useState(false);
@@ -222,7 +226,7 @@ export function StoreView(props: Props) {
               <div className="h-full rounded-full bg-forest-500 transition-all" style={{ width: `${progress * 100}%` }} />
             </div>
           </div>
-          {total === 0 && <p className="p-8 text-center text-muted">{t('store.empty')}</p>}
+          {total === 0 && <p className="p-8 text-center text-muted">{onList ? t('store.nothingLeft') : t('store.empty')}</p>}
           {sections.map((group) => (
             <section key={group.key} aria-label={categoryLabel(group.title)}>
               {/* Stays under the list's heading while its items scroll by, so you know which section they are in. */}

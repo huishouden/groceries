@@ -135,6 +135,7 @@
   "store.deleteConfirm": "{store} verwijderen?",
   "store.progress": "{done} van {total} in de kar",
   "store.empty": "Deze lijst is leeg.",
+  "store.nothingLeft": "Niets meer te halen op deze lijst.",
   "store.left": "nog {count}",
   "store.inCart": "In de kar",
   "store.inCartCount": "In de kar ({count})",

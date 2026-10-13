@@ -39,6 +39,9 @@ test('phone: store', async ({ page }) => {
   await captureScreenshot(page, 'store-phone', { fixedTime, prepare: async (p) => {
     await mode(p, 'Store');
     await expect(p.getByText('Baby spinach')).toBeVisible();
+    // Mid-trip: one thing ticked off stays in its section; what was bought days ago is not shown.
+    await p.getByRole('button', { name: 'Mark Bananas done' }).click();
+    await expect(p.getByText(/^1 of 9 in cart$/)).toBeVisible();
   } });
 });
 

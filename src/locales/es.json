@@ -135,6 +135,7 @@
   "store.deleteConfirm": "¿Eliminar {store}?",
   "store.progress": "{done} de {total} en el carrito",
   "store.empty": "Esta lista está vacía.",
+  "store.nothingLeft": "No queda nada por comprar en esta lista.",
   "store.left": "{count, plural, one {falta #} other {faltan #}}",
   "store.inCart": "En el carrito",
   "store.inCartCount": "En el carrito ({count})",
