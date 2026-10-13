@@ -12,6 +12,10 @@ Part of [Huishouden](https://huishouden-piekstra.web.app), a suite of small hous
 | **Meals** from what was bought | **Lists** on a phone |
 | ![Meal ideas grouped by breakfast, lunch and dinner, with favorites](docs/screenshots/meals.png) | <img src="docs/screenshots/phone-lists.png" alt="The Groceries list on a phone" width="260"> |
 
+| Opening |
+|---|
+| ![While Groceries opens: the app bar and the four views already in place over a placeholder](docs/screenshots/opening.png) |
+
 <img src="docs/screenshots/store-phone.png" alt="Store mode on a phone, walking Example Market with aisle labels" width="260" align="right">
 
 **Store** mode on a phone walks the list in the chosen store's order, what is left first: checked items sink to the bottom of their section, and sections with nothing left fold into one "In cart" group at the end, which opens to un-check something. With a single shopping list there is no list picker. In a shop, a one-line banner asks whether you are at the store it found nearby (OpenStreetMap). The household's saved stores are listed nearest first with their distance: from where you are when location is allowed, otherwise from the household's home (set in the portal); the banner itself only ever uses the device's own position. While shopping, checking an item off offers an optional "which aisle?" at the bottom of the screen; aisles are remembered per store for the household, items are then grouped by aisle, and a wrong aisle can be corrected from the item. Each section's heading stays at the top while its items scroll by.
