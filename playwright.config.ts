@@ -42,6 +42,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], baseURL: LIVE_URL },
     },
     {
+      // A reload and Back return to the view and list in the address (kit STANDARD.md "Updates"):
+      // the signed-out sample at BASE_URL. Runs in `e2e:local` and in `bun run e2e:emulator` against
+      // the emulator build's preview (`hh dev evidence`).
+      name: 'updates',
+      testMatch: /updates\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: LIVE_URL, viewport: { width: 1280, height: 800 } },
+    },
+    {
       // Read budgets of a first open, signed in as a test household's invented people: on the kit's
       // emulators only (`bun run e2e:emulator`, a build that counts every Firestore read).
       name: 'reads',

@@ -6,7 +6,9 @@ import { inviteMember, markJoined, removeMember, saveMyProfile } from '@huishoud
 import { setRole } from '@huishouden/pwa-kit/roles';
 import { RoleNote, useRole } from '@huishouden/pwa-kit/react/roles';
 import { AppBar } from '@huishouden/pwa-kit/react/app-bar';
-import { SampleBanner, SectionTabs, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
+import { SampleBanner, ScreenSkeleton, SectionTabs, cardClass, type Tab } from '@huishouden/pwa-kit/react/ui';
+import { useUrlParam } from '@huishouden/pwa-kit/react/url-state';
+import { setUrlParams } from '@huishouden/pwa-kit/url-state';
 import { CloudOff, CookingPot, ListChecks, Loader2, Store, UtensilsCrossed } from 'lucide-react';
 import type { AddRequest } from './components/AddBar';
 import { ErrorNotice } from './components/ErrorNotice';
@@ -90,8 +92,35 @@ function Centered({ children }: { children: ReactNode }) {
   return <div className="flex min-h-0 flex-1 items-center justify-center p-6">{children}</div>;
 }
 
-function Spinner() {
-  return <Loader2 className="animate-spin text-forest-500" size={36} aria-label={t('common.loading')} />;
+const MODES: readonly Mode[] = ['lists', 'hub', 'store', 'meals'];
+const isMode = (m: string | null): m is Mode => !!m && (MODES as readonly string[]).includes(m);
+
+/** The four views as the app bar's tabs. */
+function modeTabs(t: ReturnType<typeof useT>): (Tab & { id: Mode })[] {
+  return [
+    { id: 'lists', label: t('modes.lists'), icon: ListChecks },
+    { id: 'hub', label: t('modes.kitchen'), icon: CookingPot },
+    { id: 'store', label: t('modes.store'), icon: Store },
+    { id: 'meals', label: t('modes.meals'), icon: UtensilsCrossed },
+  ];
+}
+
+/**
+ * While the app opens (the session restoring, the household or its lists loading): the frame and the
+ * views' tabs over the kit's placeholder, so nothing flashes or jumps before the lists arrive.
+ */
+function Opening({ frame }: { frame: FrameProps }) {
+  const t = useT();
+  const [urlMode, setUrlMode] = useUrlParam('mode');
+  return (
+    <Frame {...frame} nav={<SectionTabs tabs={modeTabs(t)} tab={isMode(urlMode) ? urlMode : ''} onTab={(id) => setUrlMode(id)} />}>
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-3xl p-3 sm:p-4">
+          <ScreenSkeleton />
+        </div>
+      </main>
+    </Frame>
+  );
 }
 
 function LoadFailure({ error }: { error: FriendlyError }) {
@@ -126,13 +155,7 @@ export default function App() {
   const frame: FrameProps = { user, signingIn, onSignIn, onSignOut };
 
   if (auth.status === 'loading') {
-    return (
-      <Frame {...frame}>
-        <Centered>
-          <Spinner />
-        </Centered>
-      </Frame>
-    );
+    return <Opening frame={frame} />;
   }
   if (auth.status === 'error') {
     return (
@@ -157,13 +180,7 @@ function DemoApp({ frame, signInError }: { frame: FrameProps; signInError: Frien
     return () => setHome(undefined);
   }, []);
   if (!db) {
-    return (
-      <Frame {...frame}>
-        <Centered>
-          <Spinner />
-        </Centered>
-      </Frame>
-    );
+    return <Opening frame={frame} />;
   }
   const banner = (
     <SampleBanner
@@ -188,13 +205,7 @@ function SignedIn({ db, auth, email, user, frame }: { db: Firestore; auth: Auth;
   }, [db, householdId, user]);
 
   if (household.status === 'loading') {
-    return (
-      <Frame {...frame}>
-        <Centered>
-          <Spinner />
-        </Centered>
-      </Frame>
-    );
+    return <Opening frame={frame} />;
   }
   if (household.status === 'error') {
     return (
@@ -263,14 +274,6 @@ function Onboarding({ db, email, displayName }: { db: Firestore; email: string; 
   );
 }
 
-function initialMode(): Mode | null {
-  const params = new URLSearchParams(window.location.search);
-  // A link to an item (from the household calendar or a reminder) opens it in its list.
-  if (params.get('list')) return 'lists';
-  const m = params.get('mode');
-  return m === 'hub' || m === 'store' || m === 'lists' || m === 'meals' ? m : null;
-}
-
 /** The list and item a deep link names (`?list=<id>&item=<id>`), read once on open. */
 function linkedItem(): { list: string | null; item: string | null } {
   const params = new URLSearchParams(window.location.search);
@@ -317,20 +320,27 @@ function HouseholdApp({
   const shopping = useMemo(() => (data.loaded ? { lists: data.lists, items: data.items } : null), [data.loaded, data.lists, data.items]);
   usePublish(db, household.id, email, plan, shopping, !demo, role.restricted);
   const repo = useMemo(() => new HouseholdRepo(db, household.id, demo), [db, household.id, demo]);
+  // The view and the list on screen live in the address (`?mode=hub&list=pantry`), so a reload (an
+  // update) and Back return to them; a bare address opens what this device last showed. A link to
+  // an item (from the household calendar or a reminder) names only its list: it opens in Lists.
   const [savedMode, setMode] = usePref<Mode>('mode', 'lists');
-  const [urlMode, setUrlMode] = useState<Mode | null>(initialMode);
-  const mode = urlMode ?? savedMode;
+  const [urlMode] = useUrlParam('mode');
+  const [urlList, setUrlList] = useUrlParam('list');
+  const mode: Mode = isMode(urlMode) ? urlMode : urlList && !urlMode ? 'lists' : savedMode;
   // Anonymous counts of which views are used, per visit (the portal's /privacy page).
   useEffect(() => {
     trackView(mode);
   }, [mode]);
-  const [selectedId, setSelectedId] = usePref<string>('list', 'groceries');
-  const [link, setLink] = useState(linkedItem);
+  const [savedId, setSavedId] = usePref<string>('list', 'groceries');
+  const selectedId = urlList ?? savedId;
+  const setSelectedId = useCallback((id: string) => setUrlList(id), [setUrlList]);
   useEffect(() => {
-    if (link.list) setSelectedId(link.list);
-    // Only on open: the link chose the list once, and the person moves on from there.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (urlList) setSavedId(urlList);
+    if (isMode(urlMode)) setMode(urlMode);
+    // A bare address names what it shows, so Back from another view or list returns to this one.
+    if (!urlList || !isMode(urlMode)) setUrlParams({ mode, list: selectedId }, { replace: true });
+  }, [urlList, urlMode, mode, selectedId, setSavedId, setMode]);
+  const [link, setLink] = useState(linkedItem);
   const [addedAs, setAddedAs] = usePref<string>('addedAs', firstName(displayName, email));
   const [editing, setEditing] = useState<ListItem | null>(null);
   useEffect(() => {
@@ -338,7 +348,8 @@ function HouseholdApp({
     const item = link.item ? data.items.find((i) => i.id === link.item) : undefined;
     if (item && mayChangeItem(item, role.role, email)) setEditing(item);
     setLink({ list: null, item: null });
-    window.history.replaceState(null, '', window.location.pathname);
+    // The item opened once; the view and the list stay in the address.
+    setUrlParams({ item: null }, { replace: true });
   }, [data.loaded, data.items, link]);
   const [newList, setNewList] = useState(false);
   const [reorderLists, setReorderLists] = useState(false);
@@ -454,11 +465,7 @@ function HouseholdApp({
   // arrives, and resetting the saved choice then would jump back to the first list.
   const selectedList: ShoppingList | undefined = data.lists.find((l) => l.id === selectedId) ?? data.lists[0];
 
-  function switchMode(m: Mode) {
-    setUrlMode(null);
-    setMode(m);
-    if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
-  }
+  const switchMode = (m: Mode) => setUrlParams({ mode: m });
 
   const add = (req: AddRequest) => {
     if (!selectedList) return;
@@ -492,12 +499,7 @@ function HouseholdApp({
   };
   const clearCompleted = (items: ListItem[]) => offerUndo(repo.clearCompleted(items.filter(mayChange)), 'cleared');
 
-  const modes: (Tab & { id: Mode })[] = [
-    { id: 'lists', label: t('modes.lists'), icon: ListChecks },
-    { id: 'hub', label: t('modes.kitchen'), icon: CookingPot },
-    { id: 'store', label: t('modes.store'), icon: Store },
-    { id: 'meals', label: t('modes.meals'), icon: UtensilsCrossed },
-  ];
+  const modes = modeTabs(t);
 
   return (
     <Frame
@@ -517,17 +519,15 @@ function HouseholdApp({
       <main className={`min-h-0 flex-1 overflow-y-auto ${undoAction || askAisleFor ? 'pb-20' : ''}`}>
         {banner}
         {!data.loaded ? (
-          <Centered>
-            <div className="grid justify-items-center gap-3 text-center">
-              <Loader2 className="animate-spin text-forest-500" size={36} />
-              {data.error && (
-                <p className="max-w-sm text-sm text-muted" role="status">
-                  {t('status.connecting')}
-                  <span className="mt-1 block text-xs text-muted">{data.error}</span>
-                </p>
-              )}
-            </div>
-          </Centered>
+          <div className="mx-auto w-full max-w-3xl p-3 sm:p-4">
+            <ScreenSkeleton />
+            {data.error && (
+              <p className="mt-3 max-w-sm text-sm text-muted" role="status">
+                {t('status.connecting')}
+                <span className="mt-1 block text-xs text-muted">{data.error}</span>
+              </p>
+            )}
+          </div>
         ) : !selectedList ? (
           <Centered>
             <div className="grid max-w-sm justify-items-center gap-3 text-center">
