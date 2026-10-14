@@ -18,6 +18,10 @@ interface Props {
   selectedList: ShoppingList;
   onSelectList: (id: string) => void;
   onAdd: (req: AddRequest) => void;
+  /** Add by photo, beside the add field (signed in, with the Worker configured). */
+  onPhoto?: () => void;
+  /** Each change focuses the add field. */
+  focusAdd?: number;
   onAddStaple: (s: Staple) => void;
   /** "Don't suggest": forgets the staple (with Undo). */
   onForgetStaple: (s: Staple) => void;
@@ -71,7 +75,7 @@ export function HubView(props: Props) {
             })}
           </div>
         )}
-        <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} large placeholder={t('hub.addTo', { list: listName(selectedList) })} />
+        <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} onPhoto={props.onPhoto} focusSignal={props.focusAdd} large placeholder={t('hub.addTo', { list: listName(selectedList) })} />
         <div className="min-h-0 overflow-y-auto">
           <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} onForget={props.onForgetStaple} limit={18} large />
         </div>

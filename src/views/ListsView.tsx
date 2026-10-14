@@ -25,6 +25,10 @@ interface Props {
   onReorderLists: () => void;
   onDeleteList: (list: ShoppingList) => void;
   onAdd: (req: AddRequest) => void;
+  /** Add by photo, beside the add field (signed in, with the Worker configured). */
+  onPhoto?: () => void;
+  /** Each change focuses the add field. */
+  focusAdd?: number;
   onAddStaple: (s: Staple) => void;
   /** "Don't suggest": forgets the staple (with Undo). */
   onForgetStaple: (s: Staple) => void;
@@ -161,7 +165,7 @@ export function ListsView(props: Props) {
             )}
           </header>
 
-          <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} />
+          <AddBar staples={staples} listIcon={selectedList.icon} onAdd={props.onAdd} onForget={props.onForgetStaple} onPhoto={props.onPhoto} focusSignal={props.focusAdd} />
           <StaplesShelf staples={staples} activeItems={listItems} onAdd={props.onAddStaple} onForget={props.onForgetStaple} />
 
           {(listItems.length > 6 || search) && (

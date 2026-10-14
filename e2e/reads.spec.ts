@@ -1,5 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { expectPageReads, useTestHousehold } from '@huishouden/pwa-kit/e2e';
+import { join } from 'node:path';
+import { expectPageReads, resetPageReads, useTestHousehold } from '@huishouden/pwa-kit/e2e';
+import { PRODUCT_PHOTO_PATH } from '@huishouden/pwa-kit/product-photo-core';
+import { EMULATOR_PHOTO_ENDPOINT } from '../src/lib/photoEndpoint';
 import { testHousehold } from '@huishouden/pwa-kit/staging';
 
 // Read budgets (pwa-kit STANDARD.md "Read budgets"): what opening Groceries costs a household in
@@ -110,3 +113,54 @@ for (const as of ['member', 'helper', 'kid'] as const) {
     await firstOpen(browser, as, './', loaded, 30, `Groceries Lists, ${as}`);
   });
 }
+
+// Add by photo costs what typing costs (pwa-kit STANDARD.md "Photos read by a model"): the dialog's
+// "Add N items" goes through the same add as the field, so the same writes and the same reads (the
+// listeners billing the new items and staples, then the publish), and "Already on list" uses the
+// items the screen already has. The Worker is answered here; on the emulators it reads nothing.
+async function afterOpen(browser: Browser, act: (page: Page) => Promise<unknown>, label: string) {
+  const context = await browser.newContext({ baseURL: test.info().project.use.baseURL });
+  try {
+    const page = await context.newPage();
+    await page.route(`${EMULATOR_PHOTO_ENDPOINT}${PRODUCT_PHOTO_PATH}`, (route) =>
+      route.fulfill({
+        json: { photos: [{ products: [{ name: 'Test plums', category: 'Produce & Greens' }, { name: 'Test figs', category: 'Produce & Greens' }] }], left: 24 },
+        headers: { 'Access-Control-Allow-Origin': '*' },
+      }),
+    );
+    await hh.signIn(page, 'member', './');
+    await loaded(page);
+    await page.getByRole('button', { name: /^Groceries/ }).first().click();
+    await page.waitForTimeout(4500);
+    await resetPageReads(page);
+    // The two new items and their two staples reach the listeners (4), then the publish's to-buy query (1).
+    return await expectPageReads(page, () => act(page), { max: 5, min: 5, label, settleMs: 4500 });
+  } finally {
+    await context.close();
+  }
+}
+
+test('adding two items by photo costs the reads typing them costs', async ({ browser }) => {
+  const typed = await afterOpen(
+    browser,
+    async (page) => {
+      for (const name of ['Test apples', 'Test pears']) {
+        await page.getByLabel('New item').fill(name);
+        await page.getByRole('button', { name: 'Add', exact: true }).click();
+        await expect(page.locator('main li', { hasText: name })).toBeVisible();
+      }
+    },
+    'two items typed',
+  );
+  const photo = await afterOpen(
+    browser,
+    async (page) => {
+      await page.getByRole('button', { name: 'Add by photo' }).click();
+      await page.getByLabel('Product photos').setInputFiles(join(import.meta.dirname, 'fixtures', 'photos', 'creamer-and-whipped.jpg'));
+      await page.getByRole('button', { name: 'Add 2 items' }).click();
+      await expect(page.locator('main li', { hasText: 'Test figs' })).toBeVisible();
+    },
+    'two items by photo',
+  );
+  expect(photo.reads).toBe(typed.reads);
+});
