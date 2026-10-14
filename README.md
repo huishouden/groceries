@@ -42,6 +42,8 @@ Signed out, Groceries opens on an invented household (`src/data/demo.ts`): the r
 - **Updates:** every push to `main` runs the checks and deploys. A new version applies at launch before anything is touched, when the page is put away (hidden, with nothing open or typed; the always-on tablet's screen sleeping counts), or from the app bar's Update button (`@huishouden/pwa-kit/update`); the kit checks hourly and on return, but never reloads a page in use.
 - **Address:** the open view and list live in the address (`?mode=lists&list=<id>`), so a reload keeps them and Back and Forward move between them; a bare address opens this device's last view and list (still remembered per device) and writes them into the address. An id the household doesn't have is corrected, never remembered.
 
+**Add by photo:** the camera button in the add bar takes a photo of what is running low (or chooses several), and a moment later shows what it read as a checklist: every product ticked, its name ("Coffee mate Italian Sweet Crème creamer, Zero Sugar"), aisle and quantity editable, anything already to buy on the list unticked and marked "Already on list". Nothing is added until "Add N items". A barcode the phone can read is looked up in Open Food Facts by its number; other photos are made small on the phone (768 pixels) and read once by a vision model on Workers AI through the household's Worker (huishouden/calendar, "Add by photo"), which keeps nothing. Each household may have 25 photos read a day, and everyone together 150 (the free Workers AI allocation); when a cap is reached the dialog says so and offers typing instead. The shared pieces are the kit's `./product-photo`; the aisle a product starts in is the household's own for that name, else the model's, else the word list (`src/data/photoItems.ts`). Adding goes through the same add as typing, so it costs the same Firestore reads (`e2e/reads.spec.ts`). The test photos are drawn, not taken (`bun scripts/photo-fixtures.ts`), and `scripts/photo-probe.ts` reads them on the staging Worker.
+
 Four layouts share the same data: **Lists** for managing everything, **Kitchen** for the always-on tablet (large targets, screen kept awake), **Store** for checking items off aisle by aisle, and **Meals** for meal ideas and the week's plan.
 
 **Meals** asks Gemini (through Firebase AI Logic, on the free Gemini Developer API tier) for breakfast, lunch, dinner and snack ideas built from groceries checked off in the last 10 days and what is still on the lists, within the household's food preferences (who eats at home, diets, spice; set in the Huishouden portal, `@huishouden/pwa-kit/food`). The prompt, response schema and model live in `src/data/menus.ts`. Every suggested ingredient is checked in code against what was bought plus a short list of kitchen basics, and meals that use anything else are dropped. Saved ideas and starred favorites are shared with the household, and any idea can be planned for a day this week. AI Logic only accepts requests carrying an App Check token (reCAPTCHA Enterprise), so the API cannot be used from outside this site.
@@ -51,11 +53,16 @@ Four layouts share the same data: **Lists** for managing everything, **Kitchen**
 The app's build files load from the suite's asset CDN on Cloudflare (a Cloudflare Worker), which sees
 each request like any web host; no household data goes there.
 
+Add by photo makes a photo smaller on the device and sends it once to the household Worker on
+Cloudflare, which passes it to a vision model on Workers AI to read the product names and keeps
+nothing (no storage, no photo or name in any log); a barcode read on the device sends only its
+number to Open Food Facts. Signed out (the sample household), Add by photo is not offered.
+
 Household data lives in the household's own Firestore documents, visible only to its members.
 To catch problems early, the app sends reports to New Relic (free tier) through
 `@huishouden/pwa-kit/observability`: errors (emails, ids, query strings and long numbers removed),
 Core Web Vitals and page loads, the app version, device type, and the country and region New Relic
-derives from the request; and anonymous usage counts per visit: `add item`, `check item`, `clear completed`, `create list`, `add store`, `note aisle`, `save meal ideas`, `save favorite meal`, and which view is open. Households are counted by a
+derives from the request; and anonymous usage counts per visit: `add item` (typed, from a suggestion or by photo), `check item`, `clear completed`, `create list`, `add store`, `note aisle`, `save meal ideas`, `save favorite meal`, and which view is open. Households are counted by a
 hash of the id. No names, emails, entries, free text or precise location, and no cookie or stored
 id: nothing links one visit to the next. When the browser sends Global Privacy Control or Do Not
 Track, usage counts are skipped; errors and speed still go. Local builds, staging and automated

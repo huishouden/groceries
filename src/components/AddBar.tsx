@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AddByPhotoButton } from '@huishouden/pwa-kit/react/product-photo';
 import { ChevronDown, Plus, X, Zap } from 'lucide-react';
 import {
   ALL_CATEGORIES,
@@ -34,9 +35,13 @@ interface Props {
   placeholder?: string;
   /** The list's kind, so the aisle shown in the details matches what will be saved. */
   listIcon?: ListIcon;
+  /** Add by photo: the camera button beside the field opens it. Without it, no camera button. */
+  onPhoto?: () => void;
+  /** Each change puts the cursor in the field (Add by photo's "Type instead"). */
+  focusSignal?: number;
 }
 
-export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon }: Props) {
+export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon, onPhoto, focusSignal }: Props) {
   const t = useT();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -46,6 +51,9 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
   const [showDetails, setShowDetails] = useState(false);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focusSignal) inputRef.current?.focus();
+  }, [focusSignal]);
 
   const suggestions = useMemo(() => {
     const exact = matchSuggestions(staples, name);
@@ -102,6 +110,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon 
           className={`min-w-0 flex-1 bg-transparent px-3 outline-none ${large ? 'py-3 text-xl' : 'py-2 text-base'}`}
           aria-label={t('add.newItem')}
         />
+        {onPhoto && <AddByPhotoButton onClick={onPhoto} large={large} />}
         <button
           type="button"
           onClick={() => setShowDetails((v) => !v)}

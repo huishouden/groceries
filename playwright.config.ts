@@ -19,7 +19,7 @@ export default defineConfig({
       // Full app flows against the Auth and Firestore emulators.
       name: 'local',
       testMatch: /.*\.spec\.ts/,
-      testIgnore: /(live|ai|screenshots|signed-in|reads|opening)\.spec\.ts/,
+      testIgnore: /(live|ai|screenshots|signed-in|photo|reads|opening)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5176/groceries/', viewport: { width: 1280, height: 800 } },
     },
     {
@@ -68,7 +68,7 @@ export default defineConfig({
       // (`bun run e2e:emulator` against a build at BASE_URL) and, for @staging and @smoke, on the
       // staging site (the kit's staging job, `bun run e2e:signed-in`).
       name: 'signed-in',
-      testMatch: /signed-in\.spec\.ts/,
+      testMatch: /(signed-in|photo)\.spec\.ts/,
       timeout: 60_000,
       use: { ...devices['Desktop Chrome'], baseURL: LIVE_URL },
     },

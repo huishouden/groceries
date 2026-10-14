@@ -15,7 +15,7 @@ import { friendlyError, type FriendlyError } from './lib/errors';
 import { EditItemDialog, NewListDialog, ReorderListsDialog, SettingsDialog } from './components/dialogs';
 import { inputClass, primaryButton } from './components/ui';
 import { UndoToast, type UndoAction } from './components/UndoToast';
-import { CATEGORIES, firstName, listName, mayChangeItem, removedMessage, type Household, type ListIcon, type ListItem, type ShoppingList, type Staple } from './data/model';
+import { ALL_CATEGORIES, CATEGORIES, URGENCY, categoryLabel, firstName, type Category, listName, mayChangeItem, removedMessage, type Household, type ListIcon, type ListItem, type ShoppingList, type Staple } from './data/model';
 
 const FOOD_LIST_ICONS: ListIcon[] = ['grocery', 'pantry', 'bulk'];
 import {
@@ -43,6 +43,9 @@ import { GoogleTasksSettings } from './components/GoogleTasksSettings';
 import { GoogleTasksSuggestions, useGoogleTasksSuggestions } from '@huishouden/pwa-kit/react/google-tasks';
 import type { GoogleTask } from '@huishouden/pwa-kit/google-tasks';
 import { classifyItem, suggestMeals } from './lib/ai';
+import { PHOTO_ENDPOINT, readPhotos } from './lib/photo';
+import { alreadyListed, photoCategory } from './data/photoItems';
+import { AddByPhotoDialog } from '@huishouden/pwa-kit/react/product-photo';
 import { getFirebase, googleClientId, useEmulators } from './lib/firebase';
 import { PrefScope, useInstallPrompt, useOnline, usePref, useView } from './lib/prefs';
 import { isMode, type Mode } from './lib/view';
@@ -326,6 +329,11 @@ function HouseholdApp({
   }, [data.loaded, data.items, linkedItemId, setLinkedItemId]);
   const [newList, setNewList] = useState(false);
   const [reorderLists, setReorderLists] = useState(false);
+  // Add by photo: the dialog, and "Type instead" putting the cursor in the add field.
+  const [photo, setPhoto] = useState(false);
+  const [focusAdd, setFocusAdd] = useState(0);
+  // Signed in with the Worker configured; the sample household sends nothing anywhere.
+  const photoOffered = !demo && !!PHOTO_ENDPOINT;
   const [settings, setSettings] = useState(false);
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const undoCount = useRef(0);
@@ -490,6 +498,24 @@ function HouseholdApp({
           onClose={() => setEditing(null)}
         />
       )}
+      {photo && selectedList && (
+        <AddByPhotoDialog
+          read={(files) => readPhotos(files, auth, household.id)}
+          categories={ALL_CATEGORIES.map((c) => ({ value: c, label: categoryLabel(c) }))}
+          sectionFor={(p) => photoCategory(p, data.staples, selectedList.icon)}
+          onList={(name) => alreadyListed(name, data.items, selectedList.id)}
+          // The same add as typing: the same writes, so the same reads.
+          onAdd={(items) => {
+            for (const item of items) add({ name: item.name, quantity: item.quantity, notes: '', category: item.category as Category, urgency: URGENCY.NORMAL });
+            setPhoto(false);
+          }}
+          onType={() => {
+            setPhoto(false);
+            setFocusAdd((n) => n + 1);
+          }}
+          onClose={() => setPhoto(false)}
+        />
+      )}
       {newList && (
         <NewListDialog
           onCreate={(name, icon, color) => setSelectedId(repo.createList(name, icon, color, data.lists.length))}
@@ -606,6 +632,8 @@ function HouseholdApp({
               selectedList={selectedList}
               onSelectList={setSelectedId}
               onAdd={add}
+              onPhoto={photoOffered ? () => setPhoto(true) : undefined}
+              focusAdd={focusAdd}
               onAddStaple={addStaple}
               onForgetStaple={forgetStaple}
               onToggle={toggle}
@@ -690,6 +718,8 @@ function HouseholdApp({
               canSetUp={canSetUp}
               mayChange={mayChange}
               onAdd={add}
+              onPhoto={photoOffered ? () => setPhoto(true) : undefined}
+              focusAdd={focusAdd}
               onAddStaple={addStaple}
               onForgetStaple={forgetStaple}
               onToggle={toggle}

@@ -61,7 +61,7 @@ const VOCABULARY: [Category, string[]][] = [
       'honey', 'hot sauce', 'jam', 'jelly', 'ketchup', 'lentil', 'maple syrup', 'marinara', 'mayo', 'mayonnaise', 'mustard',
       'noodle', 'nutmeg', 'oat', 'oatmeal', 'oil', 'olive oil', 'oregano', 'paprika', 'pasta', 'pasta sauce', 'peanut butter',
       'pepper flake', 'pickle', 'quinoa', 'ramen', 'rice', 'salsa', 'salt', 'sauce', 'seasoning', 'soup', 'soy sauce',
-      'spaghetti', 'spice', 'stock', 'sugar', 'syrup', 'taco shell', 'tomato paste', 'tomato sauce', 'tuna', 'vanilla',
+      'spaghetti', 'spice', 'spread', 'stock', 'sugar', 'syrup', 'taco shell', 'tomato paste', 'tomato sauce', 'tuna', 'vanilla',
       'vinegar', 'yeast',
     ],
   ],
