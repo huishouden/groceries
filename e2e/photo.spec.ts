@@ -50,7 +50,12 @@ async function choosePhotos(page: Page, ...names: string[]) {
 }
 
 const shot = async (page: Page, name: string) => {
-  if (SHOTS) await page.screenshot({ path: join(SHOTS, `${name}.png`) });
+  if (SHOTS) await page.screenshot({ path: join(SHOTS, `${name}${process.env.PHONE ? '-phone' : ''}.png`) });
+};
+/** SHOTS with PHONE=1: the screenshots at a phone's size. */
+const sized = async (page: Page) => {
+  if (process.env.PHONE) await page.setViewportSize({ width: 412, height: 915 });
+  return page;
 };
 
 test('Add by photo: both products from one photo come back ticked; one already on the list is skipped; nothing is added before the tap', async ({ browser }) => {
@@ -130,7 +135,7 @@ test('Add by photo: a barcode the phone reads is looked up in Open Food Facts, a
 // @staging: the real Worker and model, on the invented photos (the evidence's screenshots).
 test('Add by photo on staging: the model reads the creamer and the whipped cream from one photo', { tag: '@staging' }, async ({ browser }) => {
   test.setTimeout(90_000);
-  const page = await hh.open(browser, 'admin');
+  const page = await sized(await hh.open(browser, 'admin'));
   await openGroceries(page);
   await addItem(page, 'Test bananas');
   await expect(page.getByRole('button', { name: 'Add by photo' })).toBeVisible();
@@ -146,4 +151,15 @@ test('Add by photo on staging: the model reads the creamer and the whipped cream
   await dialog.getByRole('button', { name: /^Add \d+ items?$/ }).click();
   await expect(page.locator('main li', { hasText: /Coffee mate/i })).toBeVisible();
   await shot(page, 'added');
+});
+
+// @staging: the capped state as the Worker answers it (the shape its cap test checks), for the
+// evidence's screenshot without spending the day's photos.
+test('Add by photo on staging: the day used up', { tag: '@staging' }, async ({ browser }) => {
+  const page = await sized(await hh.open(browser, 'member'));
+  await page.route(`**${PRODUCT_PHOTO_PATH}`, (route) => route.fulfill({ json: { photos: [{ capped: true }], capped: 'household', left: 0 } satisfies ProductPhotoResponse, headers: { 'Access-Control-Allow-Origin': '*' } }));
+  await openGroceries(page);
+  const dialog = await choosePhotos(page, 'whipped');
+  await expect(dialog.getByText("Your household has used today's photo reading.")).toBeVisible({ timeout: 30_000 });
+  await shot(page, 'capped');
 });
