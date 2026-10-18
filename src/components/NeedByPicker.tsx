@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { needByChoiceLabel, needByChoices } from '@huishouden/pwa-kit/need-by';
 import { isYmd, shortDate, type Ymd } from '@huishouden/pwa-kit/time';
@@ -56,9 +56,9 @@ export function NeedByPicker({ value, today, onChange, large }: { value: NeedByC
               {needByChoiceLabel(day, today)}
             </Chip>
           ))}
-          <DateChip active={!!other || picking} expanded={picking} onClick={() => setPicking(other ? true : !picking)}>
+          <Chip active={!!other || picking} expanded={picking} onClick={() => setPicking(other ? true : !picking)}>
             <CalendarDays size={14} aria-hidden="true" /> {other ? shortDate(other, today) : t('needBy.pick')}
-          </DateChip>
+          </Chip>
         </div>
         {picking && (
           <input
@@ -87,22 +87,5 @@ export function NeedByPicker({ value, today, onChange, large }: { value: NeedByC
         </div>
       )}
     </div>
-  );
-}
-
-/** The kit's Chip, as a disclosure: it opens the date field below, so it says whether that is open. */
-function DateChip({ active, expanded, onClick, children }: { active: boolean; expanded: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      aria-expanded={expanded}
-      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
-        active ? 'border-forest-700 bg-forest-700 text-white dark:border-forest-300 dark:bg-forest-300 dark:text-forest-900' : 'border-line bg-surface text-ink-soft hover:border-forest-400'
-      }`}
-    >
-      {children}
-    </button>
   );
 }
