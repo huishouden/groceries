@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { toYmd } from '@huishouden/pwa-kit/time';
 import {
   CATEGORIES,
   DEFAULT_LISTS,
@@ -79,10 +80,12 @@ describe('newItemPosition', () => {
 });
 
 describe('the sample household', () => {
-  it('lists the urgent item first and the rest newest first', () => {
-    const open = sortItems(demoItems(1_790_000_000_000).filter((i) => !i.completed));
-    expect(open[0].urgency).toBe(URGENCY.URGENT);
-    const rest = open.slice(1);
+  it('lists the item needed today first, then the one needed in three days, then the rest newest first', () => {
+    const now = 1_790_000_000_000;
+    const open = sortItems(demoItems(now).filter((i) => !i.completed), toYmd(now));
+    expect(open[0]).toMatchObject({ name: 'Eggs', urgency: URGENCY.URGENT });
+    expect(open[1].name).toBe('Coffee beans');
+    const rest = open.slice(2);
     expect(rest.map((i) => i.createdAt)).toEqual(rest.map((i) => i.createdAt).sort((a, b) => b - a));
   });
 });

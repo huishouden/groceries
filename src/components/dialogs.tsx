@@ -1,8 +1,9 @@
 import { can, householdRole, roleLabel, type Role } from '@huishouden/pwa-kit/roles';
 import { RoleNote, RoleSelect } from '@huishouden/pwa-kit/react/roles';
 import { useState } from 'react';
-import { Download, Search, Send, Trash2, UserPlus, Zap } from 'lucide-react';
-import { ALL_CATEGORIES, URGENCY, LIST_COLORS, SHOPPING_ICONS, categoryLabel, listName, moveInOrder, type Category, type Household, type ListIcon, type ListItem, type ShoppingList, type Urgency } from '../data/model';
+import { Download, Search, Send, Trash2, UserPlus } from 'lucide-react';
+import { ALL_CATEGORIES, URGENCY, LIST_COLORS, SHOPPING_ICONS, categoryLabel, itemNeedBy, listName, moveInOrder, needByFields, todayOf, type Category, type Household, type ListIcon, type ListItem, type ShoppingList } from '../data/model';
+import { NeedByPicker, type NeedByChoice } from './NeedByPicker';
 import { friendlyError, type FriendlyError } from '../lib/errors';
 import { ErrorNotice } from './ErrorNotice';
 import { Dialog, ListIconBadge, ghostButton, inputClass, primaryButton } from './ui';
@@ -58,10 +59,12 @@ export function EditItemDialog({
   const [quantity, setQuantity] = useState(item.quantity);
   const [notes, setNotes] = useState(item.notes);
   const [category, setCategory] = useState<Category>(item.category);
-  const [urgency, setUrgency] = useState<Urgency>(item.urgency);
+  const today = todayOf(Date.now());
+  const [need, setNeed] = useState<NeedByChoice>(() => {
+    const day = itemNeedBy(item, today);
+    return { needBy: day?.day ?? null, urgency: item.urgency === URGENCY.WHENEVER ? URGENCY.WHENEVER : URGENCY.NORMAL };
+  });
   const [listId, setListId] = useState(item.listId);
-  const quick = 'inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm text-ink-soft hover:border-forest-500';
-  const urgent = urgency === URGENCY.URGENT;
 
   return (
     <Dialog title={t('item.editTitle')} onClose={onClose}>
@@ -70,7 +73,9 @@ export function EditItemDialog({
         onSubmit={(e) => {
           e.preventDefault();
           if (!name.trim()) return;
-          onSave({ name: name.trim(), quantity: quantity.trim() || '1', notes: notes.trim(), category, urgency, listId });
+          // The day as picked (an older "Need Today" shows as its day), written with its urgency for older apps.
+          const when = needByFields({ needBy: need.needBy, urgency: need.needBy ? undefined : need.urgency }, item);
+          onSave({ name: name.trim(), quantity: quantity.trim() || '1', notes: notes.trim(), category, listId, ...when });
           onClose();
         }}
       >
@@ -99,16 +104,7 @@ export function EditItemDialog({
           <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('item.notesPlaceholder')} className={`${inputClass} mt-1`} />
         </label>
         <FindAtStores storeNames={storeNames} itemName={name} />
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setUrgency(urgent ? URGENCY.NORMAL : URGENCY.URGENT)}
-            aria-pressed={urgent}
-            className={`${quick} ${urgent ? 'border-terracotta bg-attention-tint font-semibold text-attention' : ''}`}
-          >
-            <Zap size={16} /> {t('item.needToday')}
-          </button>
-        </div>
+        <NeedByPicker value={need} today={today} onChange={setNeed} />
         {lists.length > 1 && (
           <label className="text-sm text-muted">
             {t('item.list')}

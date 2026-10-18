@@ -2,7 +2,7 @@ import type { AgendaInput } from '@huishouden/pwa-kit/agenda';
 import type { TodoInput } from '@huishouden/pwa-kit/todos';
 import { appLink } from '../lib/appLink';
 import { dinnerAgenda, type PlannedMeal } from './mealPlan';
-import { URGENCY, listName, type ListItem, type ShoppingList } from './model';
+import { isUrgent, listName, todayOf, type ListItem, type ShoppingList } from './model';
 import { t } from '../i18n';
 
 // What Groceries shares with the rest of Huishouden: planned dinners on the household agenda (the
@@ -26,7 +26,7 @@ const LISTS_NAMED = 3;
  * Nothing when everything is bought. `lists` are Groceries' lists (not Tasks'), `items` may include
  * others: only open items on those lists count.
  */
-export function todoItems(lists: ShoppingList[], items: ListItem[]): TodoInput[] {
+export function todoItems(lists: ShoppingList[], items: ListItem[], now = Date.now()): TodoInput[] {
   const names = new Map(lists.map((l) => [l.id, listName(l)]));
   const open = items.filter((i) => !i.completed && names.has(i.listId));
   if (open.length === 0) return [];
@@ -37,7 +37,10 @@ export function todoItems(lists: ShoppingList[], items: ListItem[]): TodoInput[]
     .sort((a, b) => b[1] - a[1] || (names.get(a[0]) ?? '').localeCompare(names.get(b[0]) ?? ''))
     .slice(0, LISTS_NAMED)
     .map(([id, n]) => `${names.get(id)} ${n}`);
-  const urgent = open.filter((i) => i.urgency === URGENCY.URGENT).length;
+  // Needed today or overdue on this device's calendar, as the list shows it. Counted when the app
+  // publishes (any change, or opening it), so an item needed tomorrow joins the count the next time.
+  const today = todayOf(now);
+  const urgent = open.filter((i) => isUrgent(i, today)).length;
   const detail = [urgent > 0 ? t('publish.needToday', { count: urgent }) : null, perList.size > 1 ? busiest.join(', ') : null].filter(Boolean).join(' · ');
 
   return [

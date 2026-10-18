@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AddByPhotoButton } from '@huishouden/pwa-kit/react/product-photo';
-import { ChevronDown, Plus, X, Zap } from 'lucide-react';
+import { ChevronDown, Plus, X } from 'lucide-react';
+import type { Ymd } from '@huishouden/pwa-kit/time';
 import {
   ALL_CATEGORIES,
-  ALL_URGENCIES,
   CATEGORIES,
   URGENCY,
   categoryLabel,
   matchSuggestions,
-  urgencyLabel,
+  todayOf,
   type Category,
   type ListIcon,
   type Staple,
   type Urgency,
 } from '../data/model';
 import { inputClass } from './ui';
+import { NeedByPicker, type NeedByChoice } from './NeedByPicker';
 import { useT } from '../i18n';
 import { closeEnough, guessCategory } from '../data/categorize';
 
@@ -24,6 +25,8 @@ export interface AddRequest {
   notes: string;
   category: Category;
   urgency: Urgency;
+  /** The day it is needed by, or null for none. */
+  needBy: Ymd | null;
 }
 
 interface Props {
@@ -47,7 +50,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon,
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
-  const [urgency, setUrgency] = useState<Urgency>(URGENCY.NORMAL);
+  const [need, setNeed] = useState<NeedByChoice>({ needBy: null, urgency: URGENCY.NORMAL });
   const [showDetails, setShowDetails] = useState(false);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +71,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon,
     setQuantity('');
     setNotes('');
     setCategory(null);
-    setUrgency(URGENCY.NORMAL);
+    setNeed({ needBy: null, urgency: URGENCY.NORMAL });
     inputRef.current?.focus();
   }
 
@@ -82,7 +85,8 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon,
       quantity: quantity || override?.defaultQuantity || '1',
       notes,
       category: override?.category ?? effectiveCategory,
-      urgency,
+      urgency: need.urgency,
+      needBy: need.needBy,
     });
     reset();
   }
@@ -180,28 +184,7 @@ export function AddBar({ staples, onAdd, onForget, large, placeholder, listIcon,
               ))}
             </select>
           </label>
-          <div className="text-sm text-muted">
-            {t('item.when')}
-            <div className="mt-1 flex gap-1.5">
-              {ALL_URGENCIES.map((u) => (
-                <button
-                  key={u}
-                  type="button"
-                  onClick={() => setUrgency(u)}
-                  className={`flex-1 rounded-xl border px-2 py-2.5 text-sm ${
-                    urgency === u
-                      ? u === URGENCY.URGENT
-                        ? 'border-terracotta bg-attention-tint font-semibold text-attention'
-                        : 'border-forest-600 bg-tint font-semibold text-forest-700 dark:text-forest-100'
-                      : 'border-line'
-                  }`}
-                >
-                  {u === URGENCY.URGENT && <Zap size={12} className="mr-0.5 inline" />}
-                  {urgencyLabel(u)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <NeedByPicker value={need} today={todayOf(Date.now())} onChange={setNeed} />
         </div>
       )}
     </div>

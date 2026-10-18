@@ -1,4 +1,6 @@
 import { can, type Role } from '@huishouden/pwa-kit/roles';
+import { deviceCalendar, needByOf, needByPatch, needByWords, type NeedBy, type NeedByChange } from '@huishouden/pwa-kit/need-by';
+import { addDays, midSentence, toYmd, type Ymd } from '@huishouden/pwa-kit/time';
 import { t } from '../i18n';
 export const CATEGORIES = {
   PRODUCE: 'Produce & Greens',
@@ -71,6 +73,9 @@ export type Urgency = (typeof URGENCY)[keyof typeof URGENCY];
 
 export const ALL_URGENCIES: Urgency[] = [URGENCY.NORMAL, URGENCY.URGENT, URGENCY.WHENEVER];
 
+/** What the add bar and the edit dialog offer for an item with no day: "Need Today" is a day now. */
+export const UNDATED_URGENCIES: Urgency[] = [URGENCY.NORMAL, URGENCY.WHENEVER];
+
 const URGENCY_KEYS = { Standard: 'urgency.standard', 'Need Today': 'urgency.today', Whenever: 'urgency.whenever' } as const satisfies Record<Urgency, string>;
 
 /** An urgency (stored in English) in the reader's language. */
@@ -113,7 +118,16 @@ export interface ListItem {
   /** Email of whoever added it: helpers and kids change and delete only their own (the rules check it). */
   by?: string;
   completed: boolean;
+  /**
+   * Kept for older apps and tools: with a `needBy`, 'Need Today' when the day had come when it was
+   * written, else 'Standard' (`needByUrgency`). 'Whenever' is for items with no day.
+   */
   urgency: Urgency;
+  /**
+   * The day it is needed by, 'YYYY-MM-DD' on this device's calendar; null or absent for none.
+   * Read with `itemNeedBy`, which also dates an older "Need Today" (@huishouden/pwa-kit/need-by).
+   */
+  needBy?: string | null;
   /** Manual order within the list; lower comes first. Older items without one use createdAt. */
   position?: number;
   // Dates, places, links and steps are Huishouden Tasks' (to-dos share this document shape);
@@ -217,14 +231,39 @@ export function stapleKey(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, ' ').replace(/\//g, '-');
 }
 
-export function groupByAisle(items: ListItem[]): [Category, ListItem[]][] {
+export function groupByAisle(items: ListItem[], today: Ymd = todayOf(Date.now())): [Category, ListItem[]][] {
   const groups = new Map<Category, ListItem[]>();
   for (const item of items) {
     const key = AISLE_ORDER.includes(item.category) ? item.category : CATEGORIES.OTHER;
     groups.set(key, [...(groups.get(key) ?? []), item]);
   }
-  return AISLE_ORDER.filter((c) => groups.has(c)).map((c) => [c, sortItems(groups.get(c)!)]);
+  return AISLE_ORDER.filter((c) => groups.has(c)).map((c) => [c, sortItems(groups.get(c)!, today)]);
 }
+
+/** Today on this device's calendar. */
+export const todayOf = (now: number): Ymd => toYmd(now);
+
+/** The day an item is needed by (or null), on this device's calendar. */
+export function itemNeedBy(item: Pick<ListItem, 'needBy' | 'urgency' | 'updatedAt' | 'createdAt'>, today: Ymd): NeedBy | null {
+  return needByOf(item, { today, dayOf: toYmd });
+}
+
+/**
+ * The `needBy` and `urgency` to write for a change on this device (`needByPatch`, the rule the
+ * household tools apply too), for a new item (`item` left out) or an existing one.
+ */
+export function needByFields(change: NeedByChange, item: Partial<Pick<ListItem, 'needBy' | 'urgency' | 'updatedAt' | 'createdAt'>> = {}, now = Date.now()): { needBy?: Ymd | null; urgency?: Urgency } {
+  return needByPatch(item, change, deviceCalendar(now)) as { needBy?: Ymd | null; urgency?: Urgency };
+}
+
+/** Still to get and needed today or before: the list's urgent treatment. */
+export function isUrgent(item: Pick<ListItem, 'needBy' | 'urgency' | 'updatedAt' | 'createdAt' | 'completed'>, today: Ymd): boolean {
+  const need = itemNeedBy(item, today);
+  return !item.completed && !!need && need.day <= today;
+}
+
+/** Items needed within this many days are sorted by their day, ahead of the household's own order. */
+export const NEED_BY_SORT_DAYS = 6;
 
 const URGENT_POSITION_STEP = 1e13;
 
@@ -241,9 +280,34 @@ export function itemPosition(item: ListItem): number {
   return item.position ?? item.createdAt;
 }
 
-/** The household's own order, set by dragging; new items land at the top, urgent ones above them. */
-export function sortItems(items: ListItem[]): ListItem[] {
-  return [...items].sort((a, b) => itemPosition(a) - itemPosition(b));
+/**
+ * The order a list shows: what is needed today or overdue first, then what is needed in the coming
+ * `NEED_BY_SORT_DAYS` days, each by its day (soonest first); then everything else in the
+ * household's own order, set by dragging (new items at the top). Within one day, the household's order.
+ */
+export function sortItems(items: ListItem[], today: Ymd = todayOf(Date.now())): ListItem[] {
+  const horizon = addDays(today, NEED_BY_SORT_DAYS);
+  const day = (i: ListItem) => {
+    const need = itemNeedBy(i, today);
+    return need && need.day <= horizon ? need.day : null;
+  };
+  const keyed = items.map((item) => ({ item, day: day(item) }));
+  return keyed
+    .sort((a, b) => {
+      if (a.day !== b.day) {
+        if (a.day === null) return 1;
+        if (b.day === null) return -1;
+        return a.day < b.day ? -1 : 1;
+      }
+      return itemPosition(a.item) - itemPosition(b.item);
+    })
+    .map((k) => k.item);
+}
+
+/** "Need by Tue", "Overdue, needed Mon"… for an item still to get, or null. */
+export function needByLine(item: ListItem, today: Ymd): string | null {
+  const need = item.completed ? null : itemNeedBy(item, today);
+  return need ? needByWords(need.day, today) : null;
 }
 
 /** Position that puts an item between its new neighbours, or null when they are too close to split. */
@@ -288,20 +352,21 @@ export function matchSuggestions(staples: Staple[], query: string, limit = 6): S
     .slice(0, limit);
 }
 
-export function formatListForSharing(listName: string, items: ListItem[]): string {
+export function formatListForSharing(listName: string, items: ListItem[], today: Ymd = todayOf(Date.now())): string {
   const active = items.filter((i) => !i.completed);
   const done = items.filter((i) => i.completed);
   const lines = [`${listName}`, ''];
   if (active.length === 0) {
     lines.push(t('share.allDone'));
   } else {
-    for (const [category, group] of groupByAisle(active)) {
+    for (const [category, group] of groupByAisle(active, today)) {
       lines.push(t('share.section', { section: categoryLabel(category) }));
       for (const item of group) {
         let line = `- ${item.name}`;
         if (item.quantity && item.quantity !== '1') line += ` (${item.quantity})`;
         if (item.notes) line += `, ${item.notes}`;
-        if (item.urgency === URGENCY.URGENT) line += ` ${t('share.needToday')}`;
+        const when = needByLine(item, today);
+        if (when) line += ` ${t('share.needBy', { when: midSentence(when) })}`;
         lines.push(line);
       }
       lines.push('');

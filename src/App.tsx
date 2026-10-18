@@ -506,7 +506,7 @@ function HouseholdApp({
           onList={(name) => alreadyListed(name, data.items, selectedList.id)}
           // The same add as typing: the same writes, so the same reads.
           onAdd={(items) => {
-            for (const item of items) add({ name: item.name, quantity: item.quantity, notes: '', category: item.category as Category, urgency: URGENCY.NORMAL });
+            for (const item of items) add({ name: item.name, quantity: item.quantity, notes: '', category: item.category as Category, urgency: URGENCY.NORMAL, needBy: null });
             setPhoto(false);
           }}
           onType={() => {

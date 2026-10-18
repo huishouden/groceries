@@ -28,13 +28,13 @@ test('items get an aisle, urgency and quantity', async ({ page }) => {
   await addItem(page, 'Tortilla chips');
   await page.getByLabel('New item').fill('Coffee beans');
   await page.getByRole('button', { name: 'More details' }).click();
-  await page.getByRole('button', { name: /Need Today/ }).click();
+  await page.getByRole('group', { name: 'Needed by' }).getByRole('button', { name: 'Today', exact: true }).click();
   await page.getByPlaceholder('1, 2 lbs, a dozen').fill('2 bags');
   await page.getByRole('button', { name: 'Add', exact: true }).click();
 
   const rows = page.locator('main ul > li');
   await expect(rows.first()).toContainText('Coffee beans');
-  await expect(rows.first()).toContainText('Today');
+  await expect(rows.first()).toContainText('Need today');
   await expect(rows.first()).toContainText('2 bags · Beverages & Coffee · Alice');
   await expect(page.locator('main li', { hasText: 'Whole milk' })).toContainText('Dairy & Eggs');
   await expect(page.locator('main li', { hasText: 'Tortilla chips' })).toContainText('Snacks & Sweets');
@@ -104,4 +104,40 @@ test("the theme is the app bar's, for the whole suite; Groceries settings have n
   expect(await page.evaluate(() => localStorage.getItem('hh-theme'))).toContain('dark');
   await theme.getByRole('button', { name: 'Automatic' }).click();
   await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
+});
+
+test('an item can be needed by a later day, changed in its edit, and cleared', async ({ page }) => {
+  await signIn(page, 'alice@example.com', 'Alice Example');
+  await createHousehold(page);
+  // Two days from now, by its short weekday name as the chips write it ("Tue").
+  const inTwo = new Date(Date.now() + 2 * 86_400_000).toLocaleDateString('en-US', { weekday: 'short' });
+  await page.getByLabel('New item').fill('Deodorant');
+  await page.getByRole('button', { name: 'More details' }).click();
+  await page.getByRole('group', { name: 'Needed by' }).getByRole('button', { name: inTwo, exact: true }).click();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  const row = page.locator('main li', { hasText: 'Deodorant' });
+  await expect(row).toContainText(`Need by ${inTwo}`);
+
+  await row.getByText('Deodorant', { exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit item' });
+  await dialog.getByRole('group', { name: 'Needed by' }).getByRole('button', { name: 'Tomorrow', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(row).toContainText('Need tomorrow');
+
+  // A date further out, from the date field: the field closes and focus moves to the chip showing it.
+  await row.getByText('Deodorant', { exact: true }).click();
+  const later = new Date(Date.now() + 10 * 86_400_000);
+  const ymd = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}-${String(later.getDate()).padStart(2, '0')}`;
+  await dialog.getByRole('button', { name: 'Pick a date' }).click();
+  await dialog.getByLabel('The day it is needed by').fill(ymd);
+  const dateChip = dialog.getByRole('button', { name: later.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
+  await expect(dateChip).toBeFocused();
+  await expect(dateChip).toHaveAttribute('aria-expanded', 'false');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(row).toContainText(`Need by ${later.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+
+  await row.getByText('Deodorant', { exact: true }).click();
+  await dialog.getByRole('group', { name: 'Needed by' }).getByRole('button', { name: 'No date', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(row).not.toContainText('Need');
 });
