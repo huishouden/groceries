@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { needByChoiceLabel, needByChoices } from '@huishouden/pwa-kit/need-by';
 import { isYmd, shortDate, type Ymd } from '@huishouden/pwa-kit/time';
@@ -35,16 +35,19 @@ export function NeedByPicker({ value, today, onChange, large }: { value: NeedByC
       // Not allowed without a fresh tap in some browsers: the field stays.
     }
   }, [picking]);
-  const pick = (needBy: Ymd | null) => {
+  const chips = useRef<HTMLDivElement>(null);
+  const pick = (needBy: Ymd | null, fromField = false) => {
     setPicking(false);
     onChange({ needBy, urgency: needBy ? URGENCY.NORMAL : value.urgency === URGENCY.WHENEVER ? URGENCY.WHENEVER : URGENCY.NORMAL });
+    // The date field closes under the keyboard's focus: hand it to the chip now showing the day.
+    if (fromField) requestAnimationFrame(() => chips.current?.querySelector<HTMLButtonElement>('button[aria-pressed="true"]')?.focus());
   };
 
   return (
     <div className={`grid gap-2 ${large ? 'text-base' : 'text-sm'} text-muted`}>
       <div role="group" aria-label={t('needBy.label')}>
         <span className="mb-1 block">{t('needBy.label')}</span>
-        <div className="flex flex-wrap gap-1.5">
+        <div ref={chips} className="flex flex-wrap gap-1.5">
           <Chip active={!value.needBy} onClick={() => pick(null)}>
             {t('needBy.none')}
           </Chip>
@@ -53,16 +56,9 @@ export function NeedByPicker({ value, today, onChange, large }: { value: NeedByC
               {needByChoiceLabel(day, today)}
             </Chip>
           ))}
-          {other && (
-            <Chip active onClick={() => setPicking(true)}>
-              <CalendarDays size={14} aria-hidden="true" /> {shortDate(other, today)}
-            </Chip>
-          )}
-          {!other && (
-            <Chip active={picking} onClick={() => setPicking(!picking)}>
-              <CalendarDays size={14} aria-hidden="true" /> {t('needBy.pick')}
-            </Chip>
-          )}
+          <DateChip active={!!other || picking} expanded={picking} onClick={() => setPicking(other ? true : !picking)}>
+            <CalendarDays size={14} aria-hidden="true" /> {other ? shortDate(other, today) : t('needBy.pick')}
+          </DateChip>
         </div>
         {picking && (
           <input
@@ -72,7 +68,7 @@ export function NeedByPicker({ value, today, onChange, large }: { value: NeedByC
             value={value.needBy ?? ''}
             aria-label={t('needBy.dateLabel')}
             onChange={(e) => {
-              if (isYmd(e.target.value) && e.target.value >= today) pick(e.target.value);
+              if (isYmd(e.target.value) && e.target.value >= today) pick(e.target.value, true);
             }}
             className={`${inputClass} mt-2 max-w-48`}
           />
@@ -91,5 +87,22 @@ export function NeedByPicker({ value, today, onChange, large }: { value: NeedByC
         </div>
       )}
     </div>
+  );
+}
+
+/** The kit's Chip, as a disclosure: it opens the date field below, so it says whether that is open. */
+function DateChip({ active, expanded, onClick, children }: { active: boolean; expanded: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-expanded={expanded}
+      className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
+        active ? 'border-forest-700 bg-forest-700 text-white dark:border-forest-300 dark:bg-forest-300 dark:text-forest-900' : 'border-line bg-surface text-ink-soft hover:border-forest-400'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

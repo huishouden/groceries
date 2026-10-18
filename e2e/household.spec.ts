@@ -124,6 +124,18 @@ test('an item can be needed by a later day, changed in its edit, and cleared', a
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(row).toContainText('Need tomorrow');
 
+  // A date further out, from the date field: the field closes and focus moves to the chip showing it.
+  await row.getByText('Deodorant', { exact: true }).click();
+  const later = new Date(Date.now() + 10 * 86_400_000);
+  const ymd = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}-${String(later.getDate()).padStart(2, '0')}`;
+  await dialog.getByRole('button', { name: 'Pick a date' }).click();
+  await dialog.getByLabel('The day it is needed by').fill(ymd);
+  const dateChip = dialog.getByRole('button', { name: later.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
+  await expect(dateChip).toBeFocused();
+  await expect(dateChip).toHaveAttribute('aria-expanded', 'false');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(row).toContainText(`Need by ${later.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+
   await row.getByText('Deodorant', { exact: true }).click();
   await dialog.getByRole('group', { name: 'Needed by' }).getByRole('button', { name: 'No date', exact: true }).click();
   await dialog.getByRole('button', { name: 'Save' }).click();
