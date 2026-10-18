@@ -51,7 +51,6 @@
   "defaultList.choresDescription": "Reminders, repairs and weekend to-dos",
   "share.allDone": "Everything on this list is done.",
   "share.section": "{section}:",
-  "share.needToday": "[need today]",
   "share.alreadyDone": "Already done ({count}): {items}",
   "undo.cleared": "{count, plural, one {Cleared # done item} other {Cleared # done items}}",
   "undo.deletedOne": "Deleted \"{name}\"",
@@ -88,7 +87,6 @@
   "item.when": "When",
   "item.markDone": "Mark {name} done",
   "item.markNotDone": "Mark {name} not done",
-  "item.today": "Today",
   "item.edit": "Edit {name}",
   "item.delete": "Delete {name}",
   "aisle.change": "{aisle}. Change where {name} is",
@@ -152,7 +150,6 @@
   "findAt.title": "Find it at",
   "item.editTitle": "Edit item",
   "item.item": "Item",
-  "item.needToday": "Need today",
   "item.list": "List",
   "item.addedBy": "Added by {name}",
   "item.addedBySomeone": "Added by someone",
@@ -299,5 +296,10 @@
   "publish.needToday": "Need today: {count}",
   "publish.summary": "{count, plural, one {Groceries: # thing on the list} other {Groceries: # things on the list}}",
   "agenda.dinner": "Dinner: {meal}",
-  "agenda.meal": "{slot}: {meal}"
+  "agenda.meal": "{slot}: {meal}",
+  "needBy.label": "Needed by",
+  "needBy.none": "No date",
+  "needBy.pick": "Pick a date",
+  "needBy.dateLabel": "The day it is needed by",
+  "share.needBy": "[{when}]"
 }

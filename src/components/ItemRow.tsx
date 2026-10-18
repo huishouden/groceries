@@ -1,8 +1,9 @@
 import { useState, type CSSProperties, type ReactNode, type Ref } from 'react';
-import { Check, Pencil, Search, Signpost, Trash2, Zap } from 'lucide-react';
+import { CalendarDays, Check, Pencil, Search, Signpost, Trash2, Zap } from 'lucide-react';
 import { aisleLabel } from '../data/stores';
 import type { StoreLink } from '../data/chains';
-import { URGENCY, categoryLabel, type ListItem } from '../data/model';
+import { categoryLabel, itemNeedBy, todayOf, type ListItem } from '../data/model';
+import { needByWords } from '@huishouden/pwa-kit/need-by';
 import { useT } from '../i18n';
 import { doneLine } from '@huishouden/pwa-kit/react/ui';
 import { daysBetween, relativeDay } from '@huishouden/pwa-kit/time';
@@ -53,7 +54,9 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
   const t = useT();
   const [editingAisle, setEditingAisle] = useState(false);
   const showAisleInput = !!onAisle && editingAisle;
-  const urgent = item.urgency === URGENCY.URGENT && !item.completed;
+  const today = todayOf(Date.now());
+  const need = item.completed ? null : itemNeedBy(item, today);
+  const urgent = !!need && need.day <= today;
   const details = [
     item.quantity && item.quantity !== '1' ? item.quantity : null,
     item.notes || null,
@@ -83,9 +86,13 @@ export function ItemRow({ item, onToggle, onEdit, onDelete, large, showCategory,
         <button onClick={onEdit ?? onToggle} className="block w-full text-left">
           <span className={`${large ? 'text-xl' : 'text-base'} ${item.completed ? 'text-muted line-through' : ''}`}>
             <span className="font-medium [overflow-wrap:anywhere]" translate="no">{item.name}</span>
-            {urgent && (
-              <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-attention-tint px-2 py-0.5 align-middle text-xs font-semibold text-attention">
-                <Zap size={12} /> {t('item.today')}
+            {need && (
+              <span
+                className={`ml-2 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 align-middle text-xs ${
+                  urgent ? 'bg-attention-tint font-semibold text-attention' : 'bg-tint font-medium text-forest-700 dark:text-forest-100'
+                }`}
+              >
+                {urgent ? <Zap size={12} aria-hidden="true" /> : <CalendarDays size={12} aria-hidden="true" />} {needByWords(need.day, today)}
               </span>
             )}
           </span>

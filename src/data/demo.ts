@@ -63,14 +63,15 @@ export function demoItems(now: number): ListItem[] {
   seq = 0;
   const { PRODUCE, DAIRY_EGGS, BAKERY, MEAT_SEAFOOD, PANTRY, BEVERAGES, SNACKS, HOUSEHOLD, HARDWARE_HOME, FROZEN } = CATEGORIES;
   return [
-    item('groceries', 'Eggs', DAIRY_EGGS, now, { quantity: 'a dozen', urgency: URGENCY.URGENT }),
+    // Needed today, and in three days: what a need-by day looks like on the list.
+    item('groceries', 'Eggs', DAIRY_EGGS, now, { quantity: 'a dozen', urgency: URGENCY.URGENT, needBy: toYmd(now), updatedAt: now }),
     item('groceries', 'Whole milk', DAIRY_EGGS, now),
     item('groceries', 'Bananas', PRODUCE, now),
     item('groceries', 'Baby spinach', PRODUCE, now),
     item('groceries', 'Sourdough bread', BAKERY, now),
     item('groceries', 'Chicken thighs', MEAT_SEAFOOD, now, { quantity: '2 lbs' }),
     item('groceries', 'Greek yogurt', DAIRY_EGGS, now),
-    item('groceries', 'Coffee beans', BEVERAGES, now, { notes: 'Medium roast' }),
+    item('groceries', 'Coffee beans', BEVERAGES, now, { notes: 'Medium roast', needBy: addDays(toYmd(now), 3) }),
     item('groceries', 'Frozen peas', FROZEN, now),
     // Bought this week: what Meals plans from.
     item('groceries', 'Salmon', MEAT_SEAFOOD, now, bought(1, now)),

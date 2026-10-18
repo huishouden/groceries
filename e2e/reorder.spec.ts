@@ -64,7 +64,7 @@ test('new items go to the top, newest first; urgent ones above them', async ({ p
   await expect.poll(() => names(page)).toEqual(['Figs', 'Dates', 'Apples', 'Bread', 'Cheese']);
   await page.getByLabel('New item').fill('Eggs');
   await page.getByRole('button', { name: 'More details' }).click();
-  await page.getByRole('button', { name: /Need Today/ }).click();
+  await page.getByRole('group', { name: 'Needed by' }).getByRole('button', { name: 'Today', exact: true }).click();
   await page.getByRole('button', { name: 'Add', exact: true }).click();
   await expect.poll(() => names(page)).toEqual(['Eggs', 'Figs', 'Dates', 'Apples', 'Bread', 'Cheese']);
 });

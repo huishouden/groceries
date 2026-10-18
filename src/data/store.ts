@@ -41,6 +41,7 @@ import {
   isTaskList,
   itemData,
   moveInOrder,
+  needByFields,
   newItemPosition,
   positionBetween,
   shoppingStaples,
@@ -353,6 +354,8 @@ export interface NewItem {
   quantity?: string;
   notes?: string;
   urgency?: Urgency;
+  /** The day it is needed by ('YYYY-MM-DD' on this device's calendar), or null/absent for none. */
+  needBy?: string | null;
   addedBy: string;
   /** A stable id (an item brought in from Google Tasks), so adding it twice writes one item. */
   id?: string;
@@ -397,7 +400,8 @@ export class HouseholdRepo {
     const name = input.name.trim();
     if (!name) return null;
     const now = Date.now();
-    const urgency = input.urgency ?? URGENCY.NORMAL;
+    const need = needByFields({ needBy: input.needBy ?? undefined, urgency: input.urgency }, {}, now);
+    const urgency = need.urgency ?? URGENCY.NORMAL;
     const category =
       input.category && input.category !== CATEGORIES.OTHER ? input.category : guessCategory(name, input.listIcon);
     const quantity = input.quantity?.trim() || '1';
@@ -413,6 +417,7 @@ export class HouseholdRepo {
       ...(input.by ? { by: input.by } : {}),
       completed: false,
       urgency,
+      ...(need.needBy ? { needBy: need.needBy } : {}),
       position: newItemPosition(urgency === URGENCY.URGENT, now),
       ...(input.googleTaskId ? { googleTaskId: input.googleTaskId } : {}),
       createdAt: now,
@@ -453,7 +458,7 @@ export class HouseholdRepo {
     void batch.commit();
   }
 
-  updateItem(id: string, changes: Partial<Pick<ListItem, 'name' | 'category' | 'quantity' | 'notes' | 'urgency' | 'addedBy' | 'listId' | 'position'>>): void {
+  updateItem(id: string, changes: Partial<Pick<ListItem, 'name' | 'category' | 'quantity' | 'notes' | 'urgency' | 'needBy' | 'addedBy' | 'listId' | 'position'>>): void {
     void updateDoc(doc(this.col('items'), id), { ...changes, updatedAt: Date.now() });
   }
 

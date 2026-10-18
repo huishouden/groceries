@@ -51,7 +51,6 @@
   "defaultList.choresDescription": "Herinneringen, reparaties en klusjes voor het weekend",
   "share.allDone": "Alles op deze lijst is klaar.",
   "share.section": "{section}:",
-  "share.needToday": "[vandaag nodig]",
   "share.alreadyDone": "Al klaar ({count}): {items}",
   "undo.cleared": "{count, plural, one {# afgevinkt item weggehaald} other {# afgevinkte items weggehaald}}",
   "undo.deletedOne": "“{name}” verwijderd",
@@ -88,7 +87,6 @@
   "item.when": "Wanneer",
   "item.markDone": "{name} afvinken",
   "item.markNotDone": "{name} niet meer afvinken",
-  "item.today": "Vandaag",
   "item.edit": "{name} bewerken",
   "item.delete": "{name} verwijderen",
   "aisle.change": "{aisle}. Wijzigen waar {name} ligt",
@@ -152,7 +150,6 @@
   "findAt.title": "Zoeken bij",
   "item.editTitle": "Item bewerken",
   "item.item": "Item",
-  "item.needToday": "Vandaag nodig",
   "item.list": "Lijst",
   "item.addedBy": "Toegevoegd door {name}",
   "item.addedBySomeone": "Toegevoegd door iemand",
@@ -299,5 +296,10 @@
   "publish.needToday": "Vandaag nodig: {count}",
   "publish.summary": "{count, plural, one {Boodschappen: # ding op de lijst} other {Boodschappen: # dingen op de lijst}}",
   "agenda.dinner": "Avondeten: {meal}",
-  "agenda.meal": "{slot}: {meal}"
+  "agenda.meal": "{slot}: {meal}",
+  "needBy.label": "Nodig op",
+  "needBy.none": "Geen datum",
+  "needBy.pick": "Kies een datum",
+  "needBy.dateLabel": "De dag waarop het nodig is",
+  "share.needBy": "[{when}]"
 }

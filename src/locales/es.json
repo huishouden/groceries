@@ -51,7 +51,6 @@
   "defaultList.choresDescription": "Recordatorios, reparaciones y pendientes del fin de semana",
   "share.allDone": "Todo lo de esta lista está hecho.",
   "share.section": "{section}:",
-  "share.needToday": "[para hoy]",
   "share.alreadyDone": "Ya hecho ({count}): {items}",
   "undo.cleared": "{count, plural, one {Se quitó # elemento hecho} other {Se quitaron # elementos hechos}}",
   "undo.deletedOne": "Se eliminó «{name}»",
@@ -88,7 +87,6 @@
   "item.when": "Cuándo",
   "item.markDone": "Marcar {name} como hecho",
   "item.markNotDone": "Marcar {name} como pendiente",
-  "item.today": "Hoy",
   "item.edit": "Editar {name}",
   "item.delete": "Eliminar {name}",
   "aisle.change": "{aisle}. Cambiar dónde está {name}",
@@ -152,7 +150,6 @@
   "findAt.title": "Buscarlo en",
   "item.editTitle": "Editar elemento",
   "item.item": "Elemento",
-  "item.needToday": "Para hoy",
   "item.list": "Lista",
   "item.addedBy": "Agregado por {name}",
   "item.addedBySomeone": "Agregado por alguien",
@@ -299,5 +296,10 @@
   "publish.needToday": "Para hoy: {count}",
   "publish.summary": "{count, plural, one {Compras: # cosa en la lista} other {Compras: # cosas en la lista}}",
   "agenda.dinner": "Cena: {meal}",
-  "agenda.meal": "{slot}: {meal}"
+  "agenda.meal": "{slot}: {meal}",
+  "needBy.label": "Para cuándo",
+  "needBy.none": "Sin fecha",
+  "needBy.pick": "Elegir fecha",
+  "needBy.dateLabel": "El día para el que hace falta",
+  "share.needBy": "[{when}]"
 }
